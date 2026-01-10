@@ -231,32 +231,11 @@ const App = (() => {
         currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
         const newDeviceId = videoDevices[currentDeviceIndex].deviceId;
 
+        // Keep reference to old stream - DO NOT stop it yet
+        // Firefox mobile requires an active stream to avoid re-prompting for permission
+        const oldStream = currentStream;
+
         try {
-            // Try to apply new constraints to existing track (best case - no permission prompt)
-            const videoTrack = currentStream?.getVideoTracks()[0];
-
-            if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
-                try {
-                    await videoTrack.applyConstraints({
-                        deviceId: { exact: newDeviceId }
-                    });
-
-                    updateCameraStatus('Ready', true);
-                    setTimeout(() => {
-                        elements.cameraStatus.classList.add('hidden');
-                    }, 1000);
-                    return;
-                } catch (constraintError) {
-                    // applyConstraints doesn't work for switching devices on most browsers
-                    // Fall through to the stop/restart approach
-                    console.log('applyConstraints failed, using fallback:', constraintError.message);
-                }
-            }
-
-            // Fallback: Stop current stream and get new one with deviceId
-            // Using deviceId (not facingMode) should not trigger new permission prompt
-            stopCamera();
-
             const constraints = {
                 video: {
                     deviceId: { exact: newDeviceId },
@@ -266,10 +245,19 @@ const App = (() => {
                 audio: false
             };
 
-            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-            elements.cameraFeed.srcObject = currentStream;
+            // Get new stream WHILE old stream is still active
+            const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            // Now we have the new stream, assign it to video element
+            currentStream = newStream;
+            elements.cameraFeed.srcObject = newStream;
 
             await elements.cameraFeed.play();
+
+            // NOW stop the old stream (after new one is working)
+            if (oldStream) {
+                oldStream.getTracks().forEach(track => track.stop());
+            }
 
             updateCameraStatus('Ready', true);
             setTimeout(() => {
@@ -280,9 +268,14 @@ const App = (() => {
             console.error('Error switching camera:', error);
             showToast('Could not switch camera', 'error');
 
-            // Try to recover by going back to previous camera
+            // Restore the old stream if switch failed
+            if (oldStream && !currentStream) {
+                currentStream = oldStream;
+                elements.cameraFeed.srcObject = oldStream;
+            }
+
+            // Revert to previous camera index
             currentDeviceIndex = (currentDeviceIndex - 1 + videoDevices.length) % videoDevices.length;
-            await initCamera();
         }
     }
 
