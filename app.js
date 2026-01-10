@@ -60,7 +60,6 @@ const App = (() => {
         elements.deletePhotoBtn = document.getElementById('deletePhotoBtn');
         elements.downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
         elements.toastContainer = document.getElementById('toastContainer');
-        elements.cameraOverlay = document.querySelector('.camera-overlay');
     }
 
     function bindEvents() {
@@ -78,9 +77,6 @@ const App = (() => {
         elements.photoModal.addEventListener('click', (e) => {
             if (e.target === elements.photoModal) closePhotoModal();
         });
-
-        // Window resize - update overlay position
-        window.addEventListener('resize', updateOverlayPosition);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -132,7 +128,6 @@ const App = (() => {
             }
 
             updateCameraStatus('Ready', true);
-            updateOverlayPosition();
             setTimeout(() => {
                 elements.cameraStatus.classList.add('hidden');
             }, 2000);
@@ -177,51 +172,6 @@ const App = (() => {
         elements.cameraStatus.classList.remove('hidden', 'ready');
         if (ready) elements.cameraStatus.classList.add('ready');
         elements.cameraStatus.querySelector('span').textContent = message;
-    }
-
-    // Update overlay position to match video feed dimensions
-    function updateOverlayPosition() {
-        const video = elements.cameraFeed;
-        const overlay = elements.cameraOverlay;
-        const container = video.parentElement;
-
-        if (!video || !overlay || !container) return;
-
-        // Wait for video to have dimensions
-        if (video.videoWidth === 0 || video.videoHeight === 0) {
-            // Try again after a short delay
-            setTimeout(updateOverlayPosition, 100);
-            return;
-        }
-
-        const containerRect = container.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-
-        const videoAspect = video.videoWidth / video.videoHeight;
-        const containerAspect = containerWidth / containerHeight;
-
-        let videoDisplayWidth, videoDisplayHeight;
-
-        if (containerAspect > videoAspect) {
-            // Container is wider - video is constrained by height
-            videoDisplayHeight = containerHeight;
-            videoDisplayWidth = containerHeight * videoAspect;
-        } else {
-            // Container is taller - video is constrained by width
-            videoDisplayWidth = containerWidth;
-            videoDisplayHeight = containerWidth / videoAspect;
-        }
-
-        // Calculate offset to center
-        const offsetX = (containerWidth - videoDisplayWidth) / 2;
-        const offsetY = (containerHeight - videoDisplayHeight) / 2;
-
-        // Position the overlay to match video
-        overlay.style.left = offsetX + 'px';
-        overlay.style.top = offsetY + 'px';
-        overlay.style.width = videoDisplayWidth + 'px';
-        overlay.style.height = videoDisplayHeight + 'px';
     }
 
     async function switchCamera() {
