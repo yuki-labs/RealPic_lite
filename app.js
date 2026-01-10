@@ -333,16 +333,23 @@ const App = (() => {
         const ctx = previewCanvas.getContext('2d');
         ctx.drawImage(sourceCanvas, 0, 0);
 
-        // Build visible data text for display below main watermark
-        const visibleDataText = buildVisibleDataText();
+        // Build metadata lines for visible watermark
+        const deviceInfo = settings.includeDeviceInfo ? getDeviceInfo() : null;
+        const metadataLines = Watermark.buildMetadataLines({
+            includeTimestamp: settings.includeTimestamp,
+            includeLocation: settings.includeLocation,
+            includeDeviceInfo: settings.includeDeviceInfo,
+            location: userLocation,
+            deviceInfo: deviceInfo
+        });
 
-        // Apply visible watermark with data text
+        // Apply visible watermark with metadata
         Watermark.applyVisible(ctx, previewCanvas.width, previewCanvas.height, {
             text: settings.visibleText,
             position: settings.position,
             opacity: settings.opacity,
             size: settings.size,
-            dataText: visibleDataText
+            metadata: metadataLines
         });
 
         // Apply invisible watermark (steganography)
@@ -361,43 +368,6 @@ const App = (() => {
     }
 
     /**
-     * Builds visible data text for display below watermark
-     */
-    function buildVisibleDataText() {
-        const parts = [];
-
-        if (settings.includeTimestamp) {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            const timeStr = now.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            parts.push(`${dateStr} ${timeStr}`);
-        }
-
-        if (settings.includeLocation && userLocation) {
-            parts.push(`📍 ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`);
-        }
-
-        if (settings.includeDeviceInfo) {
-            const deviceInfo = getDeviceInfo();
-            // Create a compact visible version
-            const visibleParts = [];
-            if (deviceInfo.browser) visibleParts.push(deviceInfo.browser);
-            if (deviceInfo.os) visibleParts.push(deviceInfo.os);
-            if (deviceInfo.platform) visibleParts.push(deviceInfo.platform);
-            parts.push(visibleParts.join(' • '));
-        }
-
-        return parts.length > 0 ? parts.join(' | ') : null;
-    }
-
-    /**
      * Gathers device and browser information
      */
     function getDeviceInfo() {
@@ -407,6 +377,7 @@ const App = (() => {
             browserVersion: '',
             os: 'Unknown',
             osVersion: '',
+            device: 'Unknown Device',
             platform: 'Unknown',
             screenRes: `${window.screen.width}x${window.screen.height}`,
             devicePixelRatio: window.devicePixelRatio || 1,
@@ -432,7 +403,7 @@ const App = (() => {
             info.browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.?\d*)/)?.[1] || '';
         }
 
-        // Detect OS
+        // Detect OS and Device
         if (ua.includes('Windows NT')) {
             info.os = 'Windows';
             const winVersion = ua.match(/Windows NT (\d+\.\d+)/);
@@ -440,26 +411,53 @@ const App = (() => {
                 const versionMap = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
                 info.osVersion = versionMap[winVersion[1]] || winVersion[1];
             }
+            info.device = 'Windows PC';
+            info.platform = 'Desktop';
         } else if (ua.includes('Mac OS X')) {
             info.os = 'macOS';
             info.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/)?.[1]?.replace('_', '.') || '';
+            // Detect Mac type based on screen and touch
+            if (navigator.maxTouchPoints > 0) {
+                info.device = 'Mac (Touch)';
+            } else {
+                info.device = 'Mac';
+            }
+            info.platform = 'Desktop';
+        } else if (ua.includes('CrOS')) {
+            info.os = 'ChromeOS';
+            info.device = 'Chromebook';
+            info.platform = 'Desktop';
+        } else if (ua.includes('Linux') && !ua.includes('Android')) {
+            info.os = 'Linux';
+            info.device = 'Linux PC';
+            info.platform = 'Desktop';
+        } else if (ua.includes('iPhone')) {
+            info.os = 'iOS';
+            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
+            info.platform = 'Mobile';
+            // Try to detect iPhone model from screen size
+            info.device = detectiPhoneModel();
+        } else if (ua.includes('iPad')) {
+            info.os = 'iPadOS';
+            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
+            info.platform = 'Tablet';
+            info.device = detectiPadModel();
         } else if (ua.includes('Android')) {
             info.os = 'Android';
             info.osVersion = ua.match(/Android (\d+\.?\d*)/)?.[1] || '';
-        } else if (ua.includes('iPhone') || ua.includes('iPad')) {
-            info.os = ua.includes('iPad') ? 'iPadOS' : 'iOS';
-            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
-        } else if (ua.includes('Linux')) {
-            info.os = 'Linux';
-        } else if (ua.includes('CrOS')) {
-            info.os = 'ChromeOS';
-        }
 
-        // Detect platform type
-        if (/Mobi|Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
-            info.platform = ua.includes('iPad') || (ua.includes('Android') && !ua.includes('Mobile')) ? 'Tablet' : 'Mobile';
-        } else {
-            info.platform = 'Desktop';
+            // Try to extract device model from user agent
+            const androidDevice = ua.match(/;\s*([^;]+)\s*Build\//);
+            if (androidDevice) {
+                let model = androidDevice[1].trim();
+                // Clean up common prefixes
+                model = model.replace(/^(SM-|LM-|RMX|CPH|V\d+|IN\d+|M\d+|KB\d+)/, '');
+                info.device = model || 'Android Device';
+            } else {
+                info.device = 'Android Device';
+            }
+
+            info.platform = ua.includes('Mobile') ? 'Mobile' : 'Tablet';
         }
 
         // Get camera info if available
@@ -469,6 +467,79 @@ const App = (() => {
         }
 
         return info;
+    }
+
+    /**
+     * Detects iPhone model based on screen dimensions and pixel ratio
+     */
+    function detectiPhoneModel() {
+        const w = window.screen.width;
+        const h = window.screen.height;
+        const ratio = window.devicePixelRatio;
+
+        // Screen dimensions for various iPhone models (logical points)
+        // Format: minWidth, maxWidth, minHeight, maxHeight, dpr, model
+        const models = [
+            // iPhone 15 Pro Max, 14 Pro Max
+            { w: 430, h: 932, r: 3, name: 'iPhone 15/14 Pro Max' },
+            // iPhone 15 Pro, 14 Pro
+            { w: 393, h: 852, r: 3, name: 'iPhone 15/14 Pro' },
+            // iPhone 15, 15 Plus, 14, 14 Plus
+            { w: 390, h: 844, r: 3, name: 'iPhone 15/14' },
+            { w: 428, h: 926, r: 3, name: 'iPhone 15/14 Plus' },
+            // iPhone 13/12 series
+            { w: 390, h: 844, r: 3, name: 'iPhone 13/12' },
+            { w: 428, h: 926, r: 3, name: 'iPhone 13/12 Pro Max' },
+            { w: 375, h: 812, r: 3, name: 'iPhone 13 mini/12 mini' },
+            // iPhone 11 series
+            { w: 414, h: 896, r: 2, name: 'iPhone 11' },
+            { w: 414, h: 896, r: 3, name: 'iPhone 11 Pro Max' },
+            { w: 375, h: 812, r: 3, name: 'iPhone 11 Pro' },
+            // iPhone X/XS
+            { w: 375, h: 812, r: 3, name: 'iPhone X/XS' },
+            { w: 414, h: 896, r: 3, name: 'iPhone XS Max' },
+            // iPhone SE
+            { w: 375, h: 667, r: 2, name: 'iPhone SE' },
+            { w: 320, h: 568, r: 2, name: 'iPhone SE (1st gen)' },
+            // iPhone 8/7/6
+            { w: 414, h: 736, r: 3, name: 'iPhone 8/7/6 Plus' },
+            { w: 375, h: 667, r: 2, name: 'iPhone 8/7/6' },
+        ];
+
+        for (const model of models) {
+            if ((w === model.w && h === model.h) || (w === model.h && h === model.w)) {
+                if (!model.r || ratio === model.r) {
+                    return model.name;
+                }
+            }
+        }
+
+        return 'iPhone';
+    }
+
+    /**
+     * Detects iPad model based on screen dimensions
+     */
+    function detectiPadModel() {
+        const w = window.screen.width;
+        const h = window.screen.height;
+
+        // Common iPad screen sizes
+        if ((w === 1024 && h === 1366) || (w === 1366 && h === 1024)) {
+            return 'iPad Pro 12.9"';
+        } else if ((w === 834 && h === 1194) || (w === 1194 && h === 834)) {
+            return 'iPad Pro 11"';
+        } else if ((w === 820 && h === 1180) || (w === 1180 && h === 820)) {
+            return 'iPad Air';
+        } else if ((w === 810 && h === 1080) || (w === 1080 && h === 810)) {
+            return 'iPad (10th gen)';
+        } else if ((w === 768 && h === 1024) || (w === 1024 && h === 768)) {
+            return 'iPad';
+        } else if ((w === 744 && h === 1133) || (w === 1133 && h === 744)) {
+            return 'iPad mini';
+        }
+
+        return 'iPad';
     }
 
     /**
