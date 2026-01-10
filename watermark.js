@@ -27,13 +27,32 @@ const Watermark = (() => {
         if (!config.text || config.text.trim() === '') return;
 
         const fontSize = Math.max(12, Math.min(config.size, 72));
-        const userAgentFontSize = Math.max(8, fontSize * 0.45); // Smaller font for user agent
+        const secondaryFontSize = Math.max(8, fontSize * 0.45);
         const opacity = config.opacity / 100;
         const padding = fontSize * 1.5;
-        const lineSpacing = fontSize * 0.4;
+        const lineSpacing = fontSize * 0.3;
 
-        // Get user agent string
+        // Build lines array
+        const lines = [];
+
+        // Line 1: Main text (RealPic)
+        lines.push({ text: config.text, fontSize: fontSize, fontWeight: 500 });
+
+        // Line 2: Date/Time (if enabled)
+        if (config.showDateTime) {
+            const now = new Date();
+            const dateTimeStr = now.toLocaleString();
+            lines.push({ text: dateTimeStr, fontSize: secondaryFontSize, fontWeight: 400 });
+        }
+
+        // Line 3: Custom text (if provided)
+        if (config.customText && config.customText.trim() !== '') {
+            lines.push({ text: config.customText.trim(), fontSize: secondaryFontSize, fontWeight: 400 });
+        }
+
+        // Line 4: User Agent
         const userAgent = navigator.userAgent;
+        lines.push({ text: userAgent, fontSize: secondaryFontSize, fontWeight: 400 });
 
         ctx.save();
         ctx.globalAlpha = opacity;
@@ -45,84 +64,64 @@ const Watermark = (() => {
         ctx.shadowOffsetY = 1;
         ctx.fillStyle = config.color;
 
-        // Calculate total height for both lines
-        const totalHeight = fontSize + lineSpacing + userAgentFontSize;
+        // Calculate total height for all lines
+        let totalHeight = 0;
+        for (let i = 0; i < lines.length; i++) {
+            totalHeight += lines[i].fontSize;
+            if (i < lines.length - 1) totalHeight += lineSpacing;
+        }
 
-        let x, y, textAlign;
+        let x, startY, textAlign;
 
         switch (config.position) {
             case 'top-left':
                 x = padding;
-                y = padding + fontSize / 2;
+                startY = padding + lines[0].fontSize / 2;
                 textAlign = 'left';
                 break;
             case 'top-right':
                 x = width - padding;
-                y = padding + fontSize / 2;
+                startY = padding + lines[0].fontSize / 2;
                 textAlign = 'right';
                 break;
             case 'bottom-left':
                 x = padding;
-                y = height - padding - totalHeight + fontSize / 2;
+                startY = height - padding - totalHeight + lines[0].fontSize / 2;
                 textAlign = 'left';
                 break;
             case 'bottom-right':
                 x = width - padding;
-                y = height - padding - totalHeight + fontSize / 2;
+                startY = height - padding - totalHeight + lines[0].fontSize / 2;
                 textAlign = 'right';
                 break;
             case 'center':
                 x = width / 2;
-                y = height / 2 - (lineSpacing + userAgentFontSize) / 2;
+                startY = height / 2 - totalHeight / 2 + lines[0].fontSize / 2;
                 textAlign = 'center';
                 break;
             default:
                 x = width - padding;
-                y = height - padding - totalHeight + fontSize / 2;
+                startY = height - padding - totalHeight + lines[0].fontSize / 2;
                 textAlign = 'right';
         }
 
         ctx.textAlign = textAlign;
-
-        // Draw main watermark text
-        ctx.font = `500 ${fontSize}px ${config.fontFamily}`;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(config.text, x, y);
-
-        // Draw user agent on second line (full, no truncation)
-        ctx.font = `400 ${userAgentFontSize}px ${config.fontFamily}`;
-        const userAgentY = y + fontSize / 2 + lineSpacing + userAgentFontSize / 2;
-        ctx.fillText(userAgent, x, userAgentY);
-
-        ctx.restore();
-    }
-
-    /**
-     * Applies diagonal repeating watermark pattern
-     */
-    function applyPattern(ctx, width, height, settings = {}) {
-        const config = { ...defaultSettings, ...settings, opacity: 15 };
-        if (!config.text) return;
-
-        const fontSize = config.size * 0.75;
-        ctx.save();
-        ctx.globalAlpha = config.opacity / 100;
-        ctx.font = `400 ${fontSize}px ${config.fontFamily}`;
-        ctx.fillStyle = config.color;
-        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        const spacing = fontSize * 8;
-        ctx.rotate(-30 * Math.PI / 180);
+        // Draw each line
+        let currentY = startY;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            ctx.font = `${line.fontWeight} ${line.fontSize}px ${config.fontFamily}`;
+            ctx.fillText(line.text, x, currentY);
 
-        for (let y = -height; y < height * 2; y += spacing) {
-            for (let x = -width; x < width * 2; x += spacing) {
-                ctx.fillText(config.text, x, y);
+            if (i < lines.length - 1) {
+                currentY += line.fontSize / 2 + lineSpacing + lines[i + 1].fontSize / 2;
             }
         }
 
         ctx.restore();
     }
 
-    return { applyVisible, applyPattern, defaultSettings };
+    return { applyVisible, defaultSettings };
 })();

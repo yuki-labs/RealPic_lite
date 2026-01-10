@@ -7,20 +7,20 @@ const App = (() => {
     // State
     let currentStream = null;
     let facingMode = 'environment';
-    let photos = [];
-    let currentPhotoIndex = -1;
 
     // Camera device tracking
     let videoDevices = [];
     let currentDeviceIndex = 0;
     let hasMultipleCameras = false;
 
-    // Fixed settings (not user-configurable)
+    // User-configurable settings
     const settings = {
         visibleText: 'RealPic',
         position: 'bottom-right',
         opacity: 70,
         size: 24,
+        showDateTime: true,
+        customText: '',
         includeTimestamp: true,
         includeUserAgent: true
     };
@@ -30,7 +30,7 @@ const App = (() => {
 
     function init() {
         cacheElements();
-        loadPhotos();
+        loadSettings();
         bindEvents();
         initCamera();
     }
@@ -42,23 +42,16 @@ const App = (() => {
         elements.cameraStatus = document.getElementById('cameraStatus');
         elements.cameraSection = document.getElementById('cameraSection');
         elements.previewSection = document.getElementById('previewSection');
-        elements.gallerySection = document.getElementById('gallerySection');
         elements.captureBtn = document.getElementById('captureBtn');
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
-        elements.galleryBtn = document.getElementById('galleryBtn');
+        elements.settingsBtn = document.getElementById('settingsBtn');
         elements.discardBtn = document.getElementById('discardBtn');
         elements.saveBtn = document.getElementById('saveBtn');
-        elements.galleryBackBtn = document.getElementById('galleryBackBtn');
-        elements.galleryGrid = document.getElementById('galleryGrid');
-        elements.galleryEmpty = document.getElementById('galleryEmpty');
-        elements.photoCount = document.getElementById('photoCount');
-        elements.photoModal = document.getElementById('photoModal');
-        elements.closePhotoBtn = document.getElementById('closePhotoBtn');
-        elements.modalPhoto = document.getElementById('modalPhoto');
-        elements.modalTimestamp = document.getElementById('modalTimestamp');
-        elements.modalHiddenData = document.getElementById('modalHiddenData');
-        elements.deletePhotoBtn = document.getElementById('deletePhotoBtn');
-        elements.downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
+        elements.settingsModal = document.getElementById('settingsModal');
+        elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        elements.saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        elements.showDateTime = document.getElementById('showDateTime');
+        elements.customText = document.getElementById('customText');
         elements.toastContainer = document.getElementById('toastContainer');
         elements.cameraContainer = document.querySelector('.camera-container');
         elements.previewContainer = document.querySelector('.preview-container');
@@ -67,17 +60,15 @@ const App = (() => {
     function bindEvents() {
         elements.captureBtn.addEventListener('click', capturePhoto);
         elements.switchCameraBtn.addEventListener('click', switchCamera);
-        elements.galleryBtn.addEventListener('click', showGallery);
+        elements.settingsBtn.addEventListener('click', openSettings);
         elements.discardBtn.addEventListener('click', discardPhoto);
-        elements.saveBtn.addEventListener('click', savePhoto);
-        elements.galleryBackBtn.addEventListener('click', showCamera);
-        elements.closePhotoBtn.addEventListener('click', closePhotoModal);
-        elements.deletePhotoBtn.addEventListener('click', deletePhoto);
-        elements.downloadPhotoBtn.addEventListener('click', downloadPhoto);
+        elements.saveBtn.addEventListener('click', downloadPhoto);
+        elements.closeSettingsBtn.addEventListener('click', closeSettings);
+        elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
         // Close modal on overlay click
-        elements.photoModal.addEventListener('click', (e) => {
-            if (e.target === elements.photoModal) closePhotoModal();
+        elements.settingsModal.addEventListener('click', (e) => {
+            if (e.target === elements.settingsModal) closeSettings();
         });
 
         // Window resize - update container size
@@ -86,13 +77,59 @@ const App = (() => {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closePhotoModal();
+                closeSettings();
             }
             if (e.code === 'Space' && !elements.cameraSection.classList.contains('hidden')) {
                 e.preventDefault();
                 capturePhoto();
             }
         });
+    }
+
+    // Settings Functions
+    function loadSettings() {
+        try {
+            const stored = localStorage.getItem('realpic_settings');
+            if (stored) {
+                const loaded = JSON.parse(stored);
+                Object.assign(settings, loaded);
+            }
+        } catch (e) {
+            console.warn('Could not load settings:', e);
+        }
+        applySettingsToUI();
+    }
+
+    function applySettingsToUI() {
+        if (elements.showDateTime) {
+            elements.showDateTime.checked = settings.showDateTime;
+        }
+        if (elements.customText) {
+            elements.customText.value = settings.customText || '';
+        }
+    }
+
+    function openSettings() {
+        applySettingsToUI();
+        elements.settingsModal.classList.remove('hidden');
+    }
+
+    function closeSettings() {
+        elements.settingsModal.classList.add('hidden');
+    }
+
+    function saveSettings() {
+        settings.showDateTime = elements.showDateTime.checked;
+        settings.customText = elements.customText.value;
+
+        try {
+            localStorage.setItem('realpic_settings', JSON.stringify(settings));
+        } catch (e) {
+            console.warn('Could not save settings:', e);
+        }
+
+        closeSettings();
+        showToast('Settings saved', 'success');
     }
 
     // Camera Functions
@@ -250,6 +287,7 @@ const App = (() => {
             }
 
             updateCameraStatus('Ready', true);
+            updateContainerSize();
             setTimeout(() => {
                 elements.cameraStatus.classList.add('hidden');
             }, 1000);
@@ -305,12 +343,14 @@ const App = (() => {
         const ctx = previewCanvas.getContext('2d');
         ctx.drawImage(sourceCanvas, 0, 0);
 
-        // Apply visible watermark
+        // Apply visible watermark with all settings
         Watermark.applyVisible(ctx, previewCanvas.width, previewCanvas.height, {
             text: settings.visibleText,
             position: settings.position,
             opacity: settings.opacity,
-            size: settings.size
+            size: settings.size,
+            showDateTime: settings.showDateTime,
+            customText: settings.customText
         });
 
         // Apply invisible watermark (steganography)
@@ -333,6 +373,10 @@ const App = (() => {
 
         if (settings.includeTimestamp) {
             parts.push(`Time: ${new Date().toISOString()}`);
+        }
+
+        if (settings.customText) {
+            parts.push(`Custom: ${settings.customText}`);
         }
 
         if (settings.includeUserAgent) {
@@ -382,128 +426,23 @@ const App = (() => {
 
     function showCamera() {
         elements.previewSection.classList.add('hidden');
-        elements.gallerySection.classList.add('hidden');
         elements.cameraSection.classList.remove('hidden');
         initCamera();
-    }
-
-    function showGallery() {
-        elements.cameraSection.classList.add('hidden');
-        elements.previewSection.classList.add('hidden');
-        elements.gallerySection.classList.remove('hidden');
-        stopCamera();
-        renderGallery();
     }
 
     function discardPhoto() {
         showCamera();
     }
 
-    // Save/Load Functions
-    function savePhoto() {
-        const dataUrl = elements.previewCanvas.toDataURL('image/png');
-        const photo = {
-            id: Date.now(),
-            data: dataUrl,
-            timestamp: new Date().toISOString(),
-            hiddenData: buildInvisibleData() || 'None'
-        };
-
-        photos.unshift(photo);
-        savePhotos();
-        showToast('Photo saved!', 'success');
-        showCamera();
-    }
-
-    function savePhotos() {
-        try {
-            localStorage.setItem('realpic_photos', JSON.stringify(photos));
-        } catch (e) {
-            if (e.name === 'QuotaExceededError') {
-                photos = photos.slice(0, -1);
-                showToast('Storage full. Oldest photo removed.', 'error');
-                savePhotos();
-            }
-        }
-    }
-
-    function loadPhotos() {
-        try {
-            const stored = localStorage.getItem('realpic_photos');
-            if (stored) photos = JSON.parse(stored);
-        } catch (e) {
-            photos = [];
-        }
-    }
-
-    function renderGallery() {
-        elements.photoCount.textContent = `${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
-
-        if (photos.length === 0) {
-            elements.galleryGrid.classList.add('hidden');
-            elements.galleryEmpty.classList.remove('hidden');
-            return;
-        }
-
-        elements.galleryEmpty.classList.add('hidden');
-        elements.galleryGrid.classList.remove('hidden');
-
-        elements.galleryGrid.innerHTML = photos.map((photo, index) => `
-            <div class="gallery-item" data-index="${index}">
-                <img src="${photo.data}" alt="Photo ${index + 1}">
-                <div class="item-overlay">
-                    <span class="item-timestamp">${formatDate(photo.timestamp)}</span>
-                </div>
-            </div>
-        `).join('');
-
-        elements.galleryGrid.querySelectorAll('.gallery-item').forEach(item => {
-            item.addEventListener('click', () => {
-                openPhotoModal(parseInt(item.dataset.index));
-            });
-        });
-    }
-
-    function formatDate(isoString) {
-        const date = new Date(isoString);
-        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-
-    // Photo Modal
-    function openPhotoModal(index) {
-        currentPhotoIndex = index;
-        const photo = photos[index];
-
-        elements.modalPhoto.src = photo.data;
-        elements.modalTimestamp.textContent = new Date(photo.timestamp).toLocaleString();
-        elements.modalHiddenData.textContent = photo.hiddenData || 'None';
-        elements.photoModal.classList.remove('hidden');
-    }
-
-    function closePhotoModal() {
-        elements.photoModal.classList.add('hidden');
-        currentPhotoIndex = -1;
-    }
-
-    function deletePhoto() {
-        if (currentPhotoIndex >= 0) {
-            photos.splice(currentPhotoIndex, 1);
-            savePhotos();
-            closePhotoModal();
-            renderGallery();
-            showToast('Photo deleted', 'success');
-        }
-    }
-
+    // Download Function
     function downloadPhoto() {
-        if (currentPhotoIndex >= 0) {
-            const photo = photos[currentPhotoIndex];
-            const link = document.createElement('a');
-            link.download = `realpic_${Date.now()}.png`;
-            link.href = photo.data;
-            link.click();
-            showToast('Photo downloaded', 'success');
-        }
+        const dataUrl = elements.previewCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `realpic_${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+        showToast('Photo downloaded!', 'success');
+        showCamera();
     }
 
     // Toast Notifications
