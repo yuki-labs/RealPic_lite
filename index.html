@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RealPic Lite - Capture photos with visible and invisible watermarks for authenticity verification">
+    <title>RealPic Lite - Watermarked Photo Capture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+                </svg>
+                <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
+            </div>
+            <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Camera View -->
+            <section class="camera-section" id="cameraSection">
+                <div class="camera-container">
+                    <video id="cameraFeed" autoplay playsinline></video>
+                    <canvas id="captureCanvas" class="hidden"></canvas>
+                    
+                    <!-- Camera overlay -->
+                    <div class="camera-overlay">
+                        <div class="corner-bracket top-left"></div>
+                        <div class="corner-bracket top-right"></div>
+                        <div class="corner-bracket bottom-left"></div>
+                        <div class="corner-bracket bottom-right"></div>
+                    </div>
+
+                    <!-- Camera status -->
+                    <div class="camera-status" id="cameraStatus">
+                        <div class="status-dot"></div>
+                        <span>Initializing camera...</span>
+                    </div>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="camera-controls">
+                    <button class="control-btn secondary" id="switchCameraBtn" aria-label="Switch camera">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 3h5v5M8 21H3v-5"/>
+                            <path d="M21 3l-7.5 7.5M3 21l7.5-7.5"/>
+                        </svg>
+                    </button>
+                    <button class="capture-btn" id="captureBtn" aria-label="Take photo">
+                        <div class="capture-btn-inner"></div>
+                    </button>
+                    <button class="control-btn secondary" id="galleryBtn" aria-label="View gallery">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Preview Section (hidden by default) -->
+            <section class="preview-section hidden" id="previewSection">
+                <div class="preview-container">
+                    <canvas id="previewCanvas"></canvas>
+                    <div class="watermark-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M9 12l2 2 4-4"/>
+                        </svg>
+                        <span>Watermarked</span>
+                    </div>
+                </div>
+
+                <!-- Preview Controls -->
+                <div class="preview-controls">
+                    <button class="control-btn danger" id="discardBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        <span>Discard</span>
+                    </button>
+                    <button class="control-btn primary" id="saveBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <span>Save</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Gallery Section (hidden by default) -->
+            <section class="gallery-section hidden" id="gallerySection">
+                <div class="gallery-header">
+                    <button class="back-btn" id="galleryBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h2>Gallery</h2>
+                    <span class="photo-count" id="photoCount">0 photos</span>
+                </div>
+                <div class="gallery-grid" id="galleryGrid">
+                    <!-- Photos will be dynamically inserted here -->
+                </div>
+                <div class="gallery-empty" id="galleryEmpty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <p>No photos yet</p>
+                    <span>Captured photos will appear here</span>
+                </div>
+            </section>
+        </main>
+
+        <!-- Settings Modal -->
+        <div class="modal-overlay hidden" id="settingsModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>Watermark Settings</h2>
+                    <button class="close-btn" id="closeSettingsBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <!-- Visible Watermark Settings -->
+                    <div class="settings-group">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Visible Watermark
+                        </h3>
+                        <div class="setting-item">
+                            <label for="visibleWatermarkText">Text</label>
+                            <input type="text" id="visibleWatermarkText" placeholder="© Your Name" maxlength="50">
+                        </div>
+                        <div class="setting-item">
+                            <label for="watermarkPosition">Position</label>
+                            <select id="watermarkPosition">
+                                <option value="bottom-right">Bottom Right</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="top-left">Top Left</option>
+                                <option value="center">Center</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="watermarkOpacity">Opacity</label>
+                            <div class="range-container">
+                                <input type="range" id="watermarkOpacity" min="10" max="100" value="70">
+                                <span class="range-value" id="opacityValue">70%</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="watermarkSize">Size</label>
+                            <div class="range-container">
+                                <input type="range" id="watermarkSize" min="12" max="48" value="24">
+                                <span class="range-value" id="sizeValue">24px</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invisible Watermark Settings -->
+                    <div class="settings-group">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                            Invisible Watermark (Steganography)
+                        </h3>
+                        <p class="settings-description">
+                            Hidden data embedded in image pixels. Can be extracted to verify authenticity.
+                        </p>
+                        <div class="setting-item">
+                            <label for="invisibleWatermarkText">Hidden Message</label>
+                            <input type="text" id="invisibleWatermarkText" placeholder="Secret verification data" maxlength="100">
+                        </div>
+                        <div class="setting-item toggle-item">
+                            <label for="includeTimestamp">Include Timestamp</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="includeTimestamp" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item toggle-item">
+                            <label for="includeLocation">Include Location (if available)</label>
+                            <label class="toggle">
+                                <input type="checkbox" id="includeLocation">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="resetSettingsBtn">Reset to Defaults</button>
+                    <button class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo Detail Modal -->
+        <div class="modal-overlay hidden" id="photoModal">
+            <div class="modal photo-modal">
+                <div class="modal-header">
+                    <h2>Photo Details</h2>
+                    <button class="close-btn" id="closePhotoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <div class="photo-preview">
+                        <img id="modalPhoto" src="" alt="Photo preview">
+                    </div>
+                    <div class="photo-info">
+                        <div class="info-item">
+                            <span class="info-label">Captured</span>
+                            <span class="info-value" id="modalTimestamp"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Hidden Data</span>
+                            <span class="info-value" id="modalHiddenData"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-danger" id="deletePhotoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                        Delete
+                    </button>
+                    <button class="btn-primary" id="downloadPhotoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <script src="steganography.js"></script>
+    <script src="watermark.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
