@@ -333,12 +333,16 @@ const App = (() => {
         const ctx = previewCanvas.getContext('2d');
         ctx.drawImage(sourceCanvas, 0, 0);
 
-        // Apply visible watermark
+        // Build visible data text for display below main watermark
+        const visibleDataText = buildVisibleDataText();
+
+        // Apply visible watermark with data text
         Watermark.applyVisible(ctx, previewCanvas.width, previewCanvas.height, {
             text: settings.visibleText,
             position: settings.position,
             opacity: settings.opacity,
-            size: settings.size
+            size: settings.size,
+            dataText: visibleDataText
         });
 
         // Apply invisible watermark (steganography)
@@ -354,6 +358,43 @@ const App = (() => {
         }
 
         showPreview();
+    }
+
+    /**
+     * Builds visible data text for display below watermark
+     */
+    function buildVisibleDataText() {
+        const parts = [];
+
+        if (settings.includeTimestamp) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const timeStr = now.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            parts.push(`${dateStr} ${timeStr}`);
+        }
+
+        if (settings.includeLocation && userLocation) {
+            parts.push(`📍 ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`);
+        }
+
+        if (settings.includeDeviceInfo) {
+            const deviceInfo = getDeviceInfo();
+            // Create a compact visible version
+            const visibleParts = [];
+            if (deviceInfo.browser) visibleParts.push(deviceInfo.browser);
+            if (deviceInfo.os) visibleParts.push(deviceInfo.os);
+            if (deviceInfo.platform) visibleParts.push(deviceInfo.platform);
+            parts.push(visibleParts.join(' • '));
+        }
+
+        return parts.length > 0 ? parts.join(' | ') : null;
     }
 
     /**

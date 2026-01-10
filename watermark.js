@@ -11,7 +11,8 @@ const Watermark = (() => {
         size: 24,
         fontFamily: 'Inter, sans-serif',
         color: '#ffffff',
-        shadowColor: 'rgba(0, 0, 0, 0.8)'
+        shadowColor: 'rgba(0, 0, 0, 0.8)',
+        dataText: null // Additional data text to show below main text
     };
 
     /**
@@ -27,51 +28,57 @@ const Watermark = (() => {
         if (!config.text || config.text.trim() === '') return;
 
         const fontSize = Math.max(12, Math.min(config.size, 72));
+        const dataFontSize = Math.max(10, fontSize * 0.5); // Smaller font for data
         const opacity = config.opacity / 100;
         const padding = fontSize * 1.5;
+        const lineSpacing = fontSize * 0.4; // Space between main text and data
 
         ctx.save();
         ctx.globalAlpha = opacity;
         ctx.font = `500 ${fontSize}px ${config.fontFamily}`;
         ctx.textBaseline = 'middle';
 
-        const textMetrics = ctx.measureText(config.text);
-        const textWidth = textMetrics.width;
-        const textHeight = fontSize;
+        // Calculate total height including data text
+        const mainTextHeight = fontSize;
+        const dataTextHeight = config.dataText ? dataFontSize : 0;
+        const totalHeight = mainTextHeight + (config.dataText ? lineSpacing + dataTextHeight : 0);
 
         let x, y;
+        let textAlign;
 
         switch (config.position) {
             case 'top-left':
                 x = padding;
-                y = padding + textHeight / 2;
-                ctx.textAlign = 'left';
+                y = padding + mainTextHeight / 2;
+                textAlign = 'left';
                 break;
             case 'top-right':
                 x = width - padding;
-                y = padding + textHeight / 2;
-                ctx.textAlign = 'right';
+                y = padding + mainTextHeight / 2;
+                textAlign = 'right';
                 break;
             case 'bottom-left':
                 x = padding;
-                y = height - padding - textHeight / 2;
-                ctx.textAlign = 'left';
+                y = height - padding - totalHeight + mainTextHeight / 2;
+                textAlign = 'left';
                 break;
             case 'bottom-right':
                 x = width - padding;
-                y = height - padding - textHeight / 2;
-                ctx.textAlign = 'right';
+                y = height - padding - totalHeight + mainTextHeight / 2;
+                textAlign = 'right';
                 break;
             case 'center':
                 x = width / 2;
-                y = height / 2;
-                ctx.textAlign = 'center';
+                y = height / 2 - (config.dataText ? (lineSpacing + dataTextHeight) / 2 : 0);
+                textAlign = 'center';
                 break;
             default:
                 x = width - padding;
-                y = height - padding - textHeight / 2;
-                ctx.textAlign = 'right';
+                y = height - padding - totalHeight + mainTextHeight / 2;
+                textAlign = 'right';
         }
+
+        ctx.textAlign = textAlign;
 
         // Shadow for visibility on any background
         ctx.shadowColor = config.shadowColor;
@@ -79,10 +86,57 @@ const Watermark = (() => {
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
 
+        // Draw main watermark text
         ctx.fillStyle = config.color;
         ctx.fillText(config.text, x, y);
 
+        // Draw data text below main text if provided
+        if (config.dataText) {
+            const dataY = y + mainTextHeight / 2 + lineSpacing + dataFontSize / 2;
+
+            ctx.font = `400 ${dataFontSize}px ${config.fontFamily}`;
+            ctx.globalAlpha = opacity * 0.85; // Slightly more transparent
+
+            // Split long data text into multiple lines if needed
+            const maxWidth = width - padding * 2;
+            const lines = wrapText(ctx, config.dataText, maxWidth);
+
+            lines.forEach((line, index) => {
+                const lineY = dataY + (index * (dataFontSize + 4));
+                ctx.fillText(line, x, lineY);
+            });
+        }
+
         ctx.restore();
+    }
+
+    /**
+     * Wraps text into multiple lines based on max width
+     */
+    function wrapText(ctx, text, maxWidth) {
+        // Split by pipe separator first
+        const segments = text.split(' | ');
+        const lines = [];
+        let currentLine = '';
+
+        segments.forEach((segment, index) => {
+            const testLine = currentLine ? currentLine + ' • ' + segment : segment;
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = segment;
+            } else {
+                currentLine = testLine;
+            }
+        });
+
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+
+        // Limit to 3 lines max
+        return lines.slice(0, 3);
     }
 
     /**
