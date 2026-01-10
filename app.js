@@ -60,6 +60,7 @@ const App = (() => {
         elements.deletePhotoBtn = document.getElementById('deletePhotoBtn');
         elements.downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
         elements.toastContainer = document.getElementById('toastContainer');
+        elements.cameraContainer = document.querySelector('.camera-container');
     }
 
     function bindEvents() {
@@ -77,6 +78,9 @@ const App = (() => {
         elements.photoModal.addEventListener('click', (e) => {
             if (e.target === elements.photoModal) closePhotoModal();
         });
+
+        // Window resize - update container size
+        window.addEventListener('resize', updateContainerSize);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -128,6 +132,7 @@ const App = (() => {
             }
 
             updateCameraStatus('Ready', true);
+            updateContainerSize();
             setTimeout(() => {
                 elements.cameraStatus.classList.add('hidden');
             }, 2000);
@@ -172,6 +177,41 @@ const App = (() => {
         elements.cameraStatus.classList.remove('hidden', 'ready');
         if (ready) elements.cameraStatus.classList.add('ready');
         elements.cameraStatus.querySelector('span').textContent = message;
+    }
+
+    // Update container size to match video aspect ratio
+    function updateContainerSize() {
+        const video = elements.cameraFeed;
+        const container = elements.cameraContainer;
+
+        if (!video || !container) return;
+
+        // Wait for video to have dimensions
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+            setTimeout(updateContainerSize, 100);
+            return;
+        }
+
+        const videoAspect = video.videoWidth / video.videoHeight;
+
+        // Set the container's aspect ratio to match the video
+        container.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+        container.style.flex = 'none';
+        container.style.width = '100%';
+        container.style.maxHeight = 'calc(100vh - 200px)';
+
+        // If container is taller than viewport allows, constrain by height
+        const section = elements.cameraSection;
+        if (section) {
+            const availableHeight = section.clientHeight - 150; // Leave room for controls
+            const containerWidth = container.clientWidth;
+            const idealHeight = containerWidth / videoAspect;
+
+            if (idealHeight > availableHeight) {
+                container.style.width = `${availableHeight * videoAspect}px`;
+                container.style.alignSelf = 'center';
+            }
+        }
     }
 
     async function switchCamera() {
