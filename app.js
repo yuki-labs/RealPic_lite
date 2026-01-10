@@ -11,6 +11,11 @@ const App = (() => {
     let currentPhotoIndex = -1;
     let userLocation = null;
 
+    // Camera device tracking
+    let videoDevices = [];
+    let currentDeviceIndex = 0;
+    let hasMultipleCameras = false;
+
     // Settings
     let settings = {
         visibleText: '© RealPic Lite',
@@ -129,20 +134,41 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            const constraints = {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: false
-            };
+            // Build constraints - prefer deviceId if we have enumerated devices
+            let constraints;
+
+            if (videoDevices.length > 0 && videoDevices[currentDeviceIndex]) {
+                // Use specific device ID (doesn't trigger new permission prompt)
+                constraints = {
+                    video: {
+                        deviceId: { exact: videoDevices[currentDeviceIndex].deviceId },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+            } else {
+                // First time - use facingMode
+                constraints = {
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+            }
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             elements.cameraFeed.srcObject = currentStream;
             elements.cameraFeed.setAttribute('data-active', 'true');
 
             await elements.cameraFeed.play();
+
+            // Enumerate devices after we have permission (required for full device info)
+            if (videoDevices.length === 0) {
+                await enumerateVideoDevices();
+            }
 
             updateCameraStatus('Ready', true);
             setTimeout(() => {
@@ -156,6 +182,37 @@ const App = (() => {
         }
     }
 
+    async function enumerateVideoDevices() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            videoDevices = devices.filter(device => device.kind === 'videoinput');
+            hasMultipleCameras = videoDevices.length > 1;
+
+            // Find which device we're currently using and set the index
+            if (currentStream) {
+                const currentTrack = currentStream.getVideoTracks()[0];
+                if (currentTrack) {
+                    const currentSettings = currentTrack.getSettings();
+                    const currentDeviceId = currentSettings.deviceId;
+
+                    const foundIndex = videoDevices.findIndex(d => d.deviceId === currentDeviceId);
+                    if (foundIndex !== -1) {
+                        currentDeviceIndex = foundIndex;
+                    }
+                }
+            }
+
+            // Hide switch button if only one camera
+            if (!hasMultipleCameras && elements.switchCameraBtn) {
+                elements.switchCameraBtn.style.visibility = 'hidden';
+            }
+
+            console.log(`Found ${videoDevices.length} camera(s)`);
+        } catch (error) {
+            console.warn('Could not enumerate devices:', error);
+        }
+    }
+
     function updateCameraStatus(message, ready = false) {
         elements.cameraStatus.classList.remove('hidden', 'ready');
         if (ready) elements.cameraStatus.classList.add('ready');
@@ -163,9 +220,70 @@ const App = (() => {
     }
 
     async function switchCamera() {
-        facingMode = facingMode === 'environment' ? 'user' : 'environment';
-        stopCamera();
-        await initCamera();
+        if (!hasMultipleCameras || videoDevices.length < 2) {
+            showToast('No other camera available', 'error');
+            return;
+        }
+
+        updateCameraStatus('Switching camera...');
+
+        // Cycle to next camera
+        currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+        const newDeviceId = videoDevices[currentDeviceIndex].deviceId;
+
+        try {
+            // Try to apply new constraints to existing track (best case - no permission prompt)
+            const videoTrack = currentStream?.getVideoTracks()[0];
+
+            if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
+                try {
+                    await videoTrack.applyConstraints({
+                        deviceId: { exact: newDeviceId }
+                    });
+
+                    updateCameraStatus('Ready', true);
+                    setTimeout(() => {
+                        elements.cameraStatus.classList.add('hidden');
+                    }, 1000);
+                    return;
+                } catch (constraintError) {
+                    // applyConstraints doesn't work for switching devices on most browsers
+                    // Fall through to the stop/restart approach
+                    console.log('applyConstraints failed, using fallback:', constraintError.message);
+                }
+            }
+
+            // Fallback: Stop current stream and get new one with deviceId
+            // Using deviceId (not facingMode) should not trigger new permission prompt
+            stopCamera();
+
+            const constraints = {
+                video: {
+                    deviceId: { exact: newDeviceId },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            };
+
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            elements.cameraFeed.srcObject = currentStream;
+
+            await elements.cameraFeed.play();
+
+            updateCameraStatus('Ready', true);
+            setTimeout(() => {
+                elements.cameraStatus.classList.add('hidden');
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error switching camera:', error);
+            showToast('Could not switch camera', 'error');
+
+            // Try to recover by going back to previous camera
+            currentDeviceIndex = (currentDeviceIndex - 1 + videoDevices.length) % videoDevices.length;
+            await initCamera();
+        }
     }
 
     function stopCamera() {
@@ -173,6 +291,7 @@ const App = (() => {
             currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
         }
+        elements.cameraFeed.srcObject = null;
     }
 
     // Capture Functions
