@@ -61,6 +61,7 @@ const App = (() => {
         elements.downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
         elements.toastContainer = document.getElementById('toastContainer');
         elements.cameraContainer = document.querySelector('.camera-container');
+        elements.previewContainer = document.querySelector('.preview-container');
     }
 
     function bindEvents() {
@@ -346,6 +347,37 @@ const App = (() => {
         elements.cameraSection.classList.add('hidden');
         elements.previewSection.classList.remove('hidden');
         stopCamera();
+        updatePreviewContainerSize();
+    }
+
+    // Update preview container size to match canvas dimensions
+    function updatePreviewContainerSize() {
+        const canvas = elements.previewCanvas;
+        const container = elements.previewContainer;
+
+        if (!canvas || !container) return;
+
+        if (canvas.width === 0 || canvas.height === 0) return;
+
+        // Set the container's aspect ratio to match the canvas
+        container.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
+        container.style.flex = 'none';
+        container.style.width = '100%';
+        container.style.maxHeight = 'calc(100vh - 200px)';
+
+        // If container is taller than viewport allows, constrain by height
+        const section = elements.previewSection;
+        if (section) {
+            const canvasAspect = canvas.width / canvas.height;
+            const availableHeight = section.clientHeight - 150;
+            const containerWidth = container.clientWidth;
+            const idealHeight = containerWidth / canvasAspect;
+
+            if (idealHeight > availableHeight) {
+                container.style.width = `${availableHeight * canvasAspect}px`;
+                container.style.alignSelf = 'center';
+            }
+        }
     }
 
     function showCamera() {
