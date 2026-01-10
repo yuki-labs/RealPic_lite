@@ -24,7 +24,8 @@ const App = (() => {
         size: 24,
         invisibleText: '',
         includeTimestamp: true,
-        includeLocation: false
+        includeLocation: false,
+        includeDeviceInfo: true
     };
 
     // DOM Elements
@@ -83,6 +84,14 @@ const App = (() => {
         elements.invisibleWatermarkText = document.getElementById('invisibleWatermarkText');
         elements.includeTimestamp = document.getElementById('includeTimestamp');
         elements.includeLocation = document.getElementById('includeLocation');
+        elements.includeDeviceInfo = document.getElementById('includeDeviceInfo');
+        elements.extractDataBtn = document.getElementById('extractDataBtn');
+
+        // Upload elements
+        elements.uploadBtn = document.getElementById('uploadBtn');
+        elements.uploadEmptyBtn = document.getElementById('uploadEmptyBtn');
+        elements.photoUploadInput = document.getElementById('photoUploadInput');
+        elements.uploadedBadgeContainer = document.getElementById('uploadedBadgeContainer');
     }
 
     function bindEvents() {
@@ -99,6 +108,12 @@ const App = (() => {
         elements.closePhotoBtn.addEventListener('click', closePhotoModal);
         elements.deletePhotoBtn.addEventListener('click', deletePhoto);
         elements.downloadPhotoBtn.addEventListener('click', downloadPhoto);
+        elements.extractDataBtn.addEventListener('click', extractHiddenData);
+
+        // Upload buttons
+        elements.uploadBtn.addEventListener('click', () => elements.photoUploadInput.click());
+        elements.uploadEmptyBtn.addEventListener('click', () => elements.photoUploadInput.click());
+        elements.photoUploadInput.addEventListener('change', handlePhotoUpload);
 
         // Range sliders
         elements.watermarkOpacity.addEventListener('input', (e) => {
@@ -341,6 +356,95 @@ const App = (() => {
         showPreview();
     }
 
+    /**
+     * Gathers device and browser information
+     */
+    function getDeviceInfo() {
+        const ua = navigator.userAgent;
+        const info = {
+            browser: 'Unknown',
+            browserVersion: '',
+            os: 'Unknown',
+            osVersion: '',
+            platform: 'Unknown',
+            screenRes: `${window.screen.width}x${window.screen.height}`,
+            devicePixelRatio: window.devicePixelRatio || 1,
+            language: navigator.language || 'Unknown',
+            camera: 'Unknown'
+        };
+
+        // Detect browser
+        if (ua.includes('Firefox/')) {
+            info.browser = 'Firefox';
+            info.browserVersion = ua.match(/Firefox\/(\d+\.?\d*)/)?.[1] || '';
+        } else if (ua.includes('Edg/')) {
+            info.browser = 'Edge';
+            info.browserVersion = ua.match(/Edg\/(\d+\.?\d*)/)?.[1] || '';
+        } else if (ua.includes('Chrome/')) {
+            info.browser = 'Chrome';
+            info.browserVersion = ua.match(/Chrome\/(\d+\.?\d*)/)?.[1] || '';
+        } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+            info.browser = 'Safari';
+            info.browserVersion = ua.match(/Version\/(\d+\.?\d*)/)?.[1] || '';
+        } else if (ua.includes('Opera') || ua.includes('OPR/')) {
+            info.browser = 'Opera';
+            info.browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.?\d*)/)?.[1] || '';
+        }
+
+        // Detect OS
+        if (ua.includes('Windows NT')) {
+            info.os = 'Windows';
+            const winVersion = ua.match(/Windows NT (\d+\.\d+)/);
+            if (winVersion) {
+                const versionMap = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
+                info.osVersion = versionMap[winVersion[1]] || winVersion[1];
+            }
+        } else if (ua.includes('Mac OS X')) {
+            info.os = 'macOS';
+            info.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/)?.[1]?.replace('_', '.') || '';
+        } else if (ua.includes('Android')) {
+            info.os = 'Android';
+            info.osVersion = ua.match(/Android (\d+\.?\d*)/)?.[1] || '';
+        } else if (ua.includes('iPhone') || ua.includes('iPad')) {
+            info.os = ua.includes('iPad') ? 'iPadOS' : 'iOS';
+            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
+        } else if (ua.includes('Linux')) {
+            info.os = 'Linux';
+        } else if (ua.includes('CrOS')) {
+            info.os = 'ChromeOS';
+        }
+
+        // Detect platform type
+        if (/Mobi|Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+            info.platform = ua.includes('iPad') || (ua.includes('Android') && !ua.includes('Mobile')) ? 'Tablet' : 'Mobile';
+        } else {
+            info.platform = 'Desktop';
+        }
+
+        // Get camera info if available
+        if (videoDevices.length > 0 && videoDevices[currentDeviceIndex]) {
+            const device = videoDevices[currentDeviceIndex];
+            info.camera = device.label || `Camera ${currentDeviceIndex + 1}`;
+        }
+
+        return info;
+    }
+
+    /**
+     * Formats device info into a compact string for watermark
+     */
+    function formatDeviceInfo(info) {
+        const parts = [];
+        parts.push(`${info.browser}${info.browserVersion ? '/' + info.browserVersion : ''}`);
+        parts.push(`${info.os}${info.osVersion ? ' ' + info.osVersion : ''}`);
+        parts.push(info.platform);
+        parts.push(`${info.screenRes}@${info.devicePixelRatio}x`);
+        if (info.camera !== 'Unknown') {
+            parts.push(`Cam: ${info.camera}`);
+        }
+        return parts.join(', ');
+    }
+
     function buildInvisibleData() {
         const parts = [];
 
@@ -354,6 +458,11 @@ const App = (() => {
 
         if (settings.includeLocation && userLocation) {
             parts.push(`Loc: ${userLocation.lat.toFixed(6)},${userLocation.lng.toFixed(6)}`);
+        }
+
+        if (settings.includeDeviceInfo) {
+            const deviceInfo = getDeviceInfo();
+            parts.push(`Device: ${formatDeviceInfo(deviceInfo)}`);
         }
 
         return parts.length > 0 ? parts.join(' | ') : null;
@@ -413,6 +522,59 @@ const App = (() => {
         }
     }
 
+    /**
+     * Handles photo upload from file input
+     */
+    function handlePhotoUpload(event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        let uploadCount = 0;
+        const totalFiles = files.length;
+
+        Array.from(files).forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                showToast(`${file.name} is not an image`, 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+
+                // Create photo object marked as uploaded
+                const photo = {
+                    id: Date.now() + Math.random(), // Ensure unique IDs for multiple uploads
+                    data: dataUrl,
+                    timestamp: new Date().toISOString(),
+                    hiddenData: 'Unknown (uploaded)',
+                    uploaded: true,
+                    originalName: file.name
+                };
+
+                photos.unshift(photo);
+                uploadCount++;
+
+                // When all files are processed
+                if (uploadCount === totalFiles) {
+                    savePhotos();
+                    renderGallery();
+                    showToast(`${uploadCount} photo${uploadCount > 1 ? 's' : ''} uploaded for verification`, 'success');
+                }
+            };
+
+            reader.onerror = () => {
+                showToast(`Failed to read ${file.name}`, 'error');
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        // Reset the file input so the same file can be uploaded again
+        event.target.value = '';
+    }
+
     function loadPhotos() {
         try {
             const stored = localStorage.getItem('realpic_photos');
@@ -462,8 +624,99 @@ const App = (() => {
 
         elements.modalPhoto.src = photo.data;
         elements.modalTimestamp.textContent = new Date(photo.timestamp).toLocaleString();
-        elements.modalHiddenData.textContent = photo.hiddenData || 'None';
+
+        // Show/hide uploaded badge based on photo source
+        if (photo.uploaded) {
+            elements.uploadedBadgeContainer.style.display = 'flex';
+        } else {
+            elements.uploadedBadgeContainer.style.display = 'none';
+        }
+
+        // Reset hidden data display to placeholder
+        elements.modalHiddenData.innerHTML = '<span class="placeholder-text">Click "Verify" to extract hidden data from image...</span>';
+
         elements.photoModal.classList.remove('hidden');
+    }
+
+    /**
+     * Extracts hidden steganography data from the current photo
+     */
+    function extractHiddenData() {
+        if (currentPhotoIndex < 0) return;
+
+        const photo = photos[currentPhotoIndex];
+        elements.modalHiddenData.innerHTML = '<span class="extracting-text">⏳ Extracting data from image pixels...</span>';
+
+        // Create an off-screen canvas to extract image data
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = function () {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Check if image has hidden data
+                if (Steganography.hasHiddenData(imageData)) {
+                    const decoded = Steganography.decode(imageData);
+
+                    if (decoded) {
+                        // Parse and format the extracted data nicely
+                        const formattedHtml = formatExtractedData(decoded);
+                        elements.modalHiddenData.innerHTML = formattedHtml;
+                    } else {
+                        elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Could not decode hidden data</span>';
+                    }
+                } else {
+                    elements.modalHiddenData.innerHTML = '<span class="warning-text">⚠️ No steganography data found in this image</span>';
+                }
+            } catch (error) {
+                console.error('Extraction error:', error);
+                elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Error extracting data: ' + error.message + '</span>';
+            }
+        };
+
+        img.onerror = function () {
+            elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Failed to load image for extraction</span>';
+        };
+
+        img.src = photo.data;
+    }
+
+    /**
+     * Formats extracted steganography data into readable HTML
+     */
+    function formatExtractedData(data) {
+        // Split by the pipe separator used in buildInvisibleData
+        const parts = data.split(' | ');
+
+        let html = '<div class="extracted-data-container">';
+        html += '<div class="verified-badge">✓ Verified RealPic Watermark</div>';
+
+        parts.forEach(part => {
+            if (part.startsWith('Time:')) {
+                const timestamp = part.replace('Time:', '').trim();
+                const date = new Date(timestamp);
+                html += `<div class="data-item"><span class="data-label">📅 Timestamp:</span><span class="data-value">${date.toLocaleString()}</span></div>`;
+            } else if (part.startsWith('Loc:')) {
+                const coords = part.replace('Loc:', '').trim();
+                html += `<div class="data-item"><span class="data-label">📍 Location:</span><span class="data-value">${coords}</span></div>`;
+            } else if (part.startsWith('Device:')) {
+                const deviceInfo = part.replace('Device:', '').trim();
+                html += `<div class="data-item"><span class="data-label">🖥️ Device:</span><span class="data-value">${deviceInfo}</span></div>`;
+            } else if (part.trim()) {
+                html += `<div class="data-item"><span class="data-label">💬 Message:</span><span class="data-value">${part.trim()}</span></div>`;
+            }
+        });
+
+        html += '</div>';
+        return html;
     }
 
     function closePhotoModal() {
@@ -503,6 +756,7 @@ const App = (() => {
         elements.invisibleWatermarkText.value = settings.invisibleText;
         elements.includeTimestamp.checked = settings.includeTimestamp;
         elements.includeLocation.checked = settings.includeLocation;
+        elements.includeDeviceInfo.checked = settings.includeDeviceInfo;
         elements.settingsModal.classList.remove('hidden');
     }
 
@@ -518,6 +772,7 @@ const App = (() => {
         settings.invisibleText = elements.invisibleWatermarkText.value;
         settings.includeTimestamp = elements.includeTimestamp.checked;
         settings.includeLocation = elements.includeLocation.checked;
+        settings.includeDeviceInfo = elements.includeDeviceInfo.checked;
 
         localStorage.setItem('realpic_settings', JSON.stringify(settings));
 
@@ -535,7 +790,8 @@ const App = (() => {
             size: 24,
             invisibleText: '',
             includeTimestamp: true,
-            includeLocation: false
+            includeLocation: false,
+            includeDeviceInfo: true
         };
         openSettings();
     }
