@@ -99,6 +99,7 @@ body {
     overflow-x: hidden;
 }
 
+/* App Container */
 .app-container {
     display: flex;
     flex-direction: column;
@@ -179,10 +180,6 @@ body {
     flex-direction: column;
 }
 
-.hidden {
-    display: none !important;
-}
-
 /* Camera Section */
 .camera-section {
     flex: 1;
@@ -211,6 +208,10 @@ body {
     object-fit: contain;
     display: block;
     background: var(--color-bg-primary);
+}
+
+.hidden {
+    display: none !important;
 }
 
 /* Camera Overlay Brackets */
@@ -528,54 +529,6 @@ body {
     color: var(--color-text-tertiary);
 }
 
-/* Gallery Actions */
-.gallery-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.upload-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--color-accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-family: inherit;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.upload-btn:hover {
-    background: var(--color-accent-hover);
-    transform: scale(1.02);
-}
-
-.upload-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.upload-empty-btn {
-    margin-top: var(--spacing-lg);
-}
-
-.upload-empty-btn svg {
-    width: 18px;
-    height: 18px;
-}
-
-/* Uploaded Badge */
-.uploaded-badge {
-    color: var(--color-accent);
-    font-weight: 500;
-}
-
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -846,6 +799,7 @@ body {
 
 .range-container input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     width: 18px;
     height: 18px;
     background: var(--color-accent);
@@ -856,14 +810,14 @@ body {
 
 .range-container input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 10px var(--color-accent-glow);
+    box-shadow: var(--shadow-glow);
 }
 
 .range-value {
-    min-width: 45px;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+    min-width: 50px;
     text-align: right;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
 }
 
 /* Toggle Switch */
@@ -873,15 +827,15 @@ body {
     justify-content: space-between;
 }
 
-.toggle-item label:first-child {
+.toggle-item>label:first-child {
     margin-bottom: 0;
+    flex: 1;
 }
 
 .toggle {
     position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
+    width: 48px;
+    height: 26px;
     cursor: pointer;
 }
 
@@ -895,6 +849,7 @@ body {
     position: absolute;
     inset: 0;
     background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-full);
     transition: all var(--transition-fast);
 }
@@ -902,10 +857,10 @@ body {
 .toggle-slider::before {
     content: '';
     position: absolute;
-    width: 18px;
-    height: 18px;
-    left: 3px;
-    bottom: 3px;
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
     background: var(--color-text-tertiary);
     border-radius: 50%;
     transition: all var(--transition-fast);
@@ -913,18 +868,19 @@ body {
 
 .toggle input:checked+.toggle-slider {
     background: var(--color-accent);
+    border-color: var(--color-accent);
 }
 
 .toggle input:checked+.toggle-slider::before {
-    transform: translateX(20px);
     background: white;
+    transform: translateX(22px);
 }
 
-/* Modal Buttons */
+/* Buttons */
 .btn-primary,
 .btn-secondary,
 .btn-danger {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
@@ -1017,124 +973,6 @@ body {
     color: var(--color-text-primary);
     text-align: right;
     max-width: 60%;
-    word-break: break-word;
-}
-
-/* ============================================
-   Steganography Extraction UI
-   ============================================ */
-.steganography-section {
-    flex-direction: column;
-    align-items: stretch;
-    border-bottom: none;
-    margin-top: var(--spacing-sm);
-}
-
-.steganography-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--spacing-sm);
-}
-
-.steganography-header .info-label {
-    display: flex;
-    align-items: center;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-}
-
-.extract-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    background: var(--color-accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: inherit;
-    font-size: var(--font-size-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.extract-btn:hover {
-    background: var(--color-accent-hover);
-    transform: scale(1.02);
-}
-
-.extract-btn svg {
-    flex-shrink: 0;
-}
-
-.steganography-data {
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    font-size: var(--font-size-sm);
-    min-height: 60px;
-}
-
-.placeholder-text {
-    color: var(--color-text-tertiary);
-    font-style: italic;
-}
-
-.extracting-text {
-    color: var(--color-warning);
-}
-
-.error-text {
-    color: var(--color-danger);
-}
-
-.warning-text {
-    color: var(--color-warning);
-}
-
-/* Extracted Data Container */
-.extracted-data-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-}
-
-.verified-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: var(--color-success-bg);
-    color: var(--color-success);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    margin-bottom: var(--spacing-xs);
-    width: fit-content;
-}
-
-.data-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: var(--spacing-sm);
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: var(--radius-sm);
-}
-
-.data-label {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-tertiary);
-    font-weight: 500;
-}
-
-.data-value {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-primary);
     word-break: break-word;
 }
 
@@ -1252,12 +1090,6 @@ body {
     .control-btn.secondary {
         width: 46px;
         height: 46px;
-    }
-
-    .gallery-actions {
-        flex-direction: column;
-        align-items: flex-end;
-        gap: var(--spacing-xs);
     }
 }
 

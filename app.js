@@ -25,7 +25,7 @@ const App = (() => {
         invisibleText: '',
         includeTimestamp: true,
         includeLocation: false,
-        includeDeviceInfo: true
+        includeUserAgent: true
     };
 
     // DOM Elements
@@ -84,14 +84,7 @@ const App = (() => {
         elements.invisibleWatermarkText = document.getElementById('invisibleWatermarkText');
         elements.includeTimestamp = document.getElementById('includeTimestamp');
         elements.includeLocation = document.getElementById('includeLocation');
-        elements.includeDeviceInfo = document.getElementById('includeDeviceInfo');
-        elements.extractDataBtn = document.getElementById('extractDataBtn');
-
-        // Upload elements
-        elements.uploadBtn = document.getElementById('uploadBtn');
-        elements.uploadEmptyBtn = document.getElementById('uploadEmptyBtn');
-        elements.photoUploadInput = document.getElementById('photoUploadInput');
-        elements.uploadedBadgeContainer = document.getElementById('uploadedBadgeContainer');
+        elements.includeUserAgent = document.getElementById('includeUserAgent');
     }
 
     function bindEvents() {
@@ -108,12 +101,6 @@ const App = (() => {
         elements.closePhotoBtn.addEventListener('click', closePhotoModal);
         elements.deletePhotoBtn.addEventListener('click', deletePhoto);
         elements.downloadPhotoBtn.addEventListener('click', downloadPhoto);
-        elements.extractDataBtn.addEventListener('click', extractHiddenData);
-
-        // Upload buttons
-        elements.uploadBtn.addEventListener('click', () => elements.photoUploadInput.click());
-        elements.uploadEmptyBtn.addEventListener('click', () => elements.photoUploadInput.click());
-        elements.photoUploadInput.addEventListener('change', handlePhotoUpload);
 
         // Range sliders
         elements.watermarkOpacity.addEventListener('input', (e) => {
@@ -333,23 +320,12 @@ const App = (() => {
         const ctx = previewCanvas.getContext('2d');
         ctx.drawImage(sourceCanvas, 0, 0);
 
-        // Build metadata lines for visible watermark
-        const deviceInfo = settings.includeDeviceInfo ? getDeviceInfo() : null;
-        const metadataLines = Watermark.buildMetadataLines({
-            includeTimestamp: settings.includeTimestamp,
-            includeLocation: settings.includeLocation,
-            includeDeviceInfo: settings.includeDeviceInfo,
-            location: userLocation,
-            deviceInfo: deviceInfo
-        });
-
-        // Apply visible watermark with metadata
+        // Apply visible watermark
         Watermark.applyVisible(ctx, previewCanvas.width, previewCanvas.height, {
             text: settings.visibleText,
             position: settings.position,
             opacity: settings.opacity,
-            size: settings.size,
-            metadata: metadataLines
+            size: settings.size
         });
 
         // Apply invisible watermark (steganography)
@@ -367,196 +343,6 @@ const App = (() => {
         showPreview();
     }
 
-    /**
-     * Gathers device and browser information
-     */
-    function getDeviceInfo() {
-        const ua = navigator.userAgent;
-        const info = {
-            browser: 'Unknown',
-            browserVersion: '',
-            os: 'Unknown',
-            osVersion: '',
-            device: 'Unknown Device',
-            platform: 'Unknown',
-            screenRes: `${window.screen.width}x${window.screen.height}`,
-            devicePixelRatio: window.devicePixelRatio || 1,
-            language: navigator.language || 'Unknown',
-            camera: 'Unknown'
-        };
-
-        // Detect browser
-        if (ua.includes('Firefox/')) {
-            info.browser = 'Firefox';
-            info.browserVersion = ua.match(/Firefox\/(\d+\.?\d*)/)?.[1] || '';
-        } else if (ua.includes('Edg/')) {
-            info.browser = 'Edge';
-            info.browserVersion = ua.match(/Edg\/(\d+\.?\d*)/)?.[1] || '';
-        } else if (ua.includes('Chrome/')) {
-            info.browser = 'Chrome';
-            info.browserVersion = ua.match(/Chrome\/(\d+\.?\d*)/)?.[1] || '';
-        } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
-            info.browser = 'Safari';
-            info.browserVersion = ua.match(/Version\/(\d+\.?\d*)/)?.[1] || '';
-        } else if (ua.includes('Opera') || ua.includes('OPR/')) {
-            info.browser = 'Opera';
-            info.browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.?\d*)/)?.[1] || '';
-        }
-
-        // Detect OS and Device
-        if (ua.includes('Windows NT')) {
-            info.os = 'Windows';
-            const winVersion = ua.match(/Windows NT (\d+\.\d+)/);
-            if (winVersion) {
-                const versionMap = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
-                info.osVersion = versionMap[winVersion[1]] || winVersion[1];
-            }
-            info.device = 'Windows PC';
-            info.platform = 'Desktop';
-        } else if (ua.includes('Mac OS X')) {
-            info.os = 'macOS';
-            info.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/)?.[1]?.replace('_', '.') || '';
-            // Detect Mac type based on screen and touch
-            if (navigator.maxTouchPoints > 0) {
-                info.device = 'Mac (Touch)';
-            } else {
-                info.device = 'Mac';
-            }
-            info.platform = 'Desktop';
-        } else if (ua.includes('CrOS')) {
-            info.os = 'ChromeOS';
-            info.device = 'Chromebook';
-            info.platform = 'Desktop';
-        } else if (ua.includes('Linux') && !ua.includes('Android')) {
-            info.os = 'Linux';
-            info.device = 'Linux PC';
-            info.platform = 'Desktop';
-        } else if (ua.includes('iPhone')) {
-            info.os = 'iOS';
-            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
-            info.platform = 'Mobile';
-            // Try to detect iPhone model from screen size
-            info.device = detectiPhoneModel();
-        } else if (ua.includes('iPad')) {
-            info.os = 'iPadOS';
-            info.osVersion = ua.match(/OS (\d+[_.]\d+)/)?.[1]?.replace('_', '.') || '';
-            info.platform = 'Tablet';
-            info.device = detectiPadModel();
-        } else if (ua.includes('Android')) {
-            info.os = 'Android';
-            info.osVersion = ua.match(/Android (\d+\.?\d*)/)?.[1] || '';
-
-            // Try to extract device model from user agent
-            const androidDevice = ua.match(/;\s*([^;]+)\s*Build\//);
-            if (androidDevice) {
-                let model = androidDevice[1].trim();
-                // Clean up common prefixes
-                model = model.replace(/^(SM-|LM-|RMX|CPH|V\d+|IN\d+|M\d+|KB\d+)/, '');
-                info.device = model || 'Android Device';
-            } else {
-                info.device = 'Android Device';
-            }
-
-            info.platform = ua.includes('Mobile') ? 'Mobile' : 'Tablet';
-        }
-
-        // Get camera info if available
-        if (videoDevices.length > 0 && videoDevices[currentDeviceIndex]) {
-            const device = videoDevices[currentDeviceIndex];
-            info.camera = device.label || `Camera ${currentDeviceIndex + 1}`;
-        }
-
-        return info;
-    }
-
-    /**
-     * Detects iPhone model based on screen dimensions and pixel ratio
-     */
-    function detectiPhoneModel() {
-        const w = window.screen.width;
-        const h = window.screen.height;
-        const ratio = window.devicePixelRatio;
-
-        // Screen dimensions for various iPhone models (logical points)
-        // Format: minWidth, maxWidth, minHeight, maxHeight, dpr, model
-        const models = [
-            // iPhone 15 Pro Max, 14 Pro Max
-            { w: 430, h: 932, r: 3, name: 'iPhone 15/14 Pro Max' },
-            // iPhone 15 Pro, 14 Pro
-            { w: 393, h: 852, r: 3, name: 'iPhone 15/14 Pro' },
-            // iPhone 15, 15 Plus, 14, 14 Plus
-            { w: 390, h: 844, r: 3, name: 'iPhone 15/14' },
-            { w: 428, h: 926, r: 3, name: 'iPhone 15/14 Plus' },
-            // iPhone 13/12 series
-            { w: 390, h: 844, r: 3, name: 'iPhone 13/12' },
-            { w: 428, h: 926, r: 3, name: 'iPhone 13/12 Pro Max' },
-            { w: 375, h: 812, r: 3, name: 'iPhone 13 mini/12 mini' },
-            // iPhone 11 series
-            { w: 414, h: 896, r: 2, name: 'iPhone 11' },
-            { w: 414, h: 896, r: 3, name: 'iPhone 11 Pro Max' },
-            { w: 375, h: 812, r: 3, name: 'iPhone 11 Pro' },
-            // iPhone X/XS
-            { w: 375, h: 812, r: 3, name: 'iPhone X/XS' },
-            { w: 414, h: 896, r: 3, name: 'iPhone XS Max' },
-            // iPhone SE
-            { w: 375, h: 667, r: 2, name: 'iPhone SE' },
-            { w: 320, h: 568, r: 2, name: 'iPhone SE (1st gen)' },
-            // iPhone 8/7/6
-            { w: 414, h: 736, r: 3, name: 'iPhone 8/7/6 Plus' },
-            { w: 375, h: 667, r: 2, name: 'iPhone 8/7/6' },
-        ];
-
-        for (const model of models) {
-            if ((w === model.w && h === model.h) || (w === model.h && h === model.w)) {
-                if (!model.r || ratio === model.r) {
-                    return model.name;
-                }
-            }
-        }
-
-        return 'iPhone';
-    }
-
-    /**
-     * Detects iPad model based on screen dimensions
-     */
-    function detectiPadModel() {
-        const w = window.screen.width;
-        const h = window.screen.height;
-
-        // Common iPad screen sizes
-        if ((w === 1024 && h === 1366) || (w === 1366 && h === 1024)) {
-            return 'iPad Pro 12.9"';
-        } else if ((w === 834 && h === 1194) || (w === 1194 && h === 834)) {
-            return 'iPad Pro 11"';
-        } else if ((w === 820 && h === 1180) || (w === 1180 && h === 820)) {
-            return 'iPad Air';
-        } else if ((w === 810 && h === 1080) || (w === 1080 && h === 810)) {
-            return 'iPad (10th gen)';
-        } else if ((w === 768 && h === 1024) || (w === 1024 && h === 768)) {
-            return 'iPad';
-        } else if ((w === 744 && h === 1133) || (w === 1133 && h === 744)) {
-            return 'iPad mini';
-        }
-
-        return 'iPad';
-    }
-
-    /**
-     * Formats device info into a compact string for watermark
-     */
-    function formatDeviceInfo(info) {
-        const parts = [];
-        parts.push(`${info.browser}${info.browserVersion ? '/' + info.browserVersion : ''}`);
-        parts.push(`${info.os}${info.osVersion ? ' ' + info.osVersion : ''}`);
-        parts.push(info.platform);
-        parts.push(`${info.screenRes}@${info.devicePixelRatio}x`);
-        if (info.camera !== 'Unknown') {
-            parts.push(`Cam: ${info.camera}`);
-        }
-        return parts.join(', ');
-    }
-
     function buildInvisibleData() {
         const parts = [];
 
@@ -572,9 +358,8 @@ const App = (() => {
             parts.push(`Loc: ${userLocation.lat.toFixed(6)},${userLocation.lng.toFixed(6)}`);
         }
 
-        if (settings.includeDeviceInfo) {
-            const deviceInfo = getDeviceInfo();
-            parts.push(`Device: ${formatDeviceInfo(deviceInfo)}`);
+        if (settings.includeUserAgent) {
+            parts.push(`UA: ${navigator.userAgent}`);
         }
 
         return parts.length > 0 ? parts.join(' | ') : null;
@@ -634,59 +419,6 @@ const App = (() => {
         }
     }
 
-    /**
-     * Handles photo upload from file input
-     */
-    function handlePhotoUpload(event) {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
-
-        let uploadCount = 0;
-        const totalFiles = files.length;
-
-        Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) {
-                showToast(`${file.name} is not an image`, 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                const dataUrl = e.target.result;
-
-                // Create photo object marked as uploaded
-                const photo = {
-                    id: Date.now() + Math.random(), // Ensure unique IDs for multiple uploads
-                    data: dataUrl,
-                    timestamp: new Date().toISOString(),
-                    hiddenData: 'Unknown (uploaded)',
-                    uploaded: true,
-                    originalName: file.name
-                };
-
-                photos.unshift(photo);
-                uploadCount++;
-
-                // When all files are processed
-                if (uploadCount === totalFiles) {
-                    savePhotos();
-                    renderGallery();
-                    showToast(`${uploadCount} photo${uploadCount > 1 ? 's' : ''} uploaded for verification`, 'success');
-                }
-            };
-
-            reader.onerror = () => {
-                showToast(`Failed to read ${file.name}`, 'error');
-            };
-
-            reader.readAsDataURL(file);
-        });
-
-        // Reset the file input so the same file can be uploaded again
-        event.target.value = '';
-    }
-
     function loadPhotos() {
         try {
             const stored = localStorage.getItem('realpic_photos');
@@ -736,99 +468,8 @@ const App = (() => {
 
         elements.modalPhoto.src = photo.data;
         elements.modalTimestamp.textContent = new Date(photo.timestamp).toLocaleString();
-
-        // Show/hide uploaded badge based on photo source
-        if (photo.uploaded) {
-            elements.uploadedBadgeContainer.style.display = 'flex';
-        } else {
-            elements.uploadedBadgeContainer.style.display = 'none';
-        }
-
-        // Reset hidden data display to placeholder
-        elements.modalHiddenData.innerHTML = '<span class="placeholder-text">Click "Verify" to extract hidden data from image...</span>';
-
+        elements.modalHiddenData.textContent = photo.hiddenData || 'None';
         elements.photoModal.classList.remove('hidden');
-    }
-
-    /**
-     * Extracts hidden steganography data from the current photo
-     */
-    function extractHiddenData() {
-        if (currentPhotoIndex < 0) return;
-
-        const photo = photos[currentPhotoIndex];
-        elements.modalHiddenData.innerHTML = '<span class="extracting-text">⏳ Extracting data from image pixels...</span>';
-
-        // Create an off-screen canvas to extract image data
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
-        img.onload = function () {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                // Check if image has hidden data
-                if (Steganography.hasHiddenData(imageData)) {
-                    const decoded = Steganography.decode(imageData);
-
-                    if (decoded) {
-                        // Parse and format the extracted data nicely
-                        const formattedHtml = formatExtractedData(decoded);
-                        elements.modalHiddenData.innerHTML = formattedHtml;
-                    } else {
-                        elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Could not decode hidden data</span>';
-                    }
-                } else {
-                    elements.modalHiddenData.innerHTML = '<span class="warning-text">⚠️ No steganography data found in this image</span>';
-                }
-            } catch (error) {
-                console.error('Extraction error:', error);
-                elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Error extracting data: ' + error.message + '</span>';
-            }
-        };
-
-        img.onerror = function () {
-            elements.modalHiddenData.innerHTML = '<span class="error-text">❌ Failed to load image for extraction</span>';
-        };
-
-        img.src = photo.data;
-    }
-
-    /**
-     * Formats extracted steganography data into readable HTML
-     */
-    function formatExtractedData(data) {
-        // Split by the pipe separator used in buildInvisibleData
-        const parts = data.split(' | ');
-
-        let html = '<div class="extracted-data-container">';
-        html += '<div class="verified-badge">✓ Verified RealPic Watermark</div>';
-
-        parts.forEach(part => {
-            if (part.startsWith('Time:')) {
-                const timestamp = part.replace('Time:', '').trim();
-                const date = new Date(timestamp);
-                html += `<div class="data-item"><span class="data-label">📅 Timestamp:</span><span class="data-value">${date.toLocaleString()}</span></div>`;
-            } else if (part.startsWith('Loc:')) {
-                const coords = part.replace('Loc:', '').trim();
-                html += `<div class="data-item"><span class="data-label">📍 Location:</span><span class="data-value">${coords}</span></div>`;
-            } else if (part.startsWith('Device:')) {
-                const deviceInfo = part.replace('Device:', '').trim();
-                html += `<div class="data-item"><span class="data-label">🖥️ Device:</span><span class="data-value">${deviceInfo}</span></div>`;
-            } else if (part.trim()) {
-                html += `<div class="data-item"><span class="data-label">💬 Message:</span><span class="data-value">${part.trim()}</span></div>`;
-            }
-        });
-
-        html += '</div>';
-        return html;
     }
 
     function closePhotoModal() {
@@ -868,7 +509,7 @@ const App = (() => {
         elements.invisibleWatermarkText.value = settings.invisibleText;
         elements.includeTimestamp.checked = settings.includeTimestamp;
         elements.includeLocation.checked = settings.includeLocation;
-        elements.includeDeviceInfo.checked = settings.includeDeviceInfo;
+        elements.includeUserAgent.checked = settings.includeUserAgent;
         elements.settingsModal.classList.remove('hidden');
     }
 
@@ -884,7 +525,7 @@ const App = (() => {
         settings.invisibleText = elements.invisibleWatermarkText.value;
         settings.includeTimestamp = elements.includeTimestamp.checked;
         settings.includeLocation = elements.includeLocation.checked;
-        settings.includeDeviceInfo = elements.includeDeviceInfo.checked;
+        settings.includeUserAgent = elements.includeUserAgent.checked;
 
         localStorage.setItem('realpic_settings', JSON.stringify(settings));
 
@@ -903,7 +544,7 @@ const App = (() => {
             invisibleText: '',
             includeTimestamp: true,
             includeLocation: false,
-            includeDeviceInfo: true
+            includeUserAgent: true
         };
         openSettings();
     }
