@@ -9,22 +9,19 @@ const App = (() => {
     let facingMode = 'environment';
     let photos = [];
     let currentPhotoIndex = -1;
-    let userLocation = null;
 
     // Camera device tracking
     let videoDevices = [];
     let currentDeviceIndex = 0;
     let hasMultipleCameras = false;
 
-    // Settings
-    let settings = {
-        visibleText: '© RealPic Lite',
+    // Fixed settings (not user-configurable)
+    const settings = {
+        visibleText: 'RealPic',
         position: 'bottom-right',
         opacity: 70,
         size: 24,
-        invisibleText: '',
         includeTimestamp: true,
-        includeLocation: false,
         includeUserAgent: true
     };
 
@@ -33,14 +30,9 @@ const App = (() => {
 
     function init() {
         cacheElements();
-        loadSettings();
         loadPhotos();
         bindEvents();
         initCamera();
-
-        if (settings.includeLocation) {
-            requestLocation();
-        }
     }
 
     function cacheElements() {
@@ -60,11 +52,6 @@ const App = (() => {
         elements.galleryGrid = document.getElementById('galleryGrid');
         elements.galleryEmpty = document.getElementById('galleryEmpty');
         elements.photoCount = document.getElementById('photoCount');
-        elements.settingsBtn = document.getElementById('settingsBtn');
-        elements.settingsModal = document.getElementById('settingsModal');
-        elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        elements.saveSettingsBtn = document.getElementById('saveSettingsBtn');
-        elements.resetSettingsBtn = document.getElementById('resetSettingsBtn');
         elements.photoModal = document.getElementById('photoModal');
         elements.closePhotoBtn = document.getElementById('closePhotoBtn');
         elements.modalPhoto = document.getElementById('modalPhoto');
@@ -73,18 +60,6 @@ const App = (() => {
         elements.deletePhotoBtn = document.getElementById('deletePhotoBtn');
         elements.downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
         elements.toastContainer = document.getElementById('toastContainer');
-
-        // Settings inputs
-        elements.visibleWatermarkText = document.getElementById('visibleWatermarkText');
-        elements.watermarkPosition = document.getElementById('watermarkPosition');
-        elements.watermarkOpacity = document.getElementById('watermarkOpacity');
-        elements.watermarkSize = document.getElementById('watermarkSize');
-        elements.opacityValue = document.getElementById('opacityValue');
-        elements.sizeValue = document.getElementById('sizeValue');
-        elements.invisibleWatermarkText = document.getElementById('invisibleWatermarkText');
-        elements.includeTimestamp = document.getElementById('includeTimestamp');
-        elements.includeLocation = document.getElementById('includeLocation');
-        elements.includeUserAgent = document.getElementById('includeUserAgent');
     }
 
     function bindEvents() {
@@ -94,26 +69,11 @@ const App = (() => {
         elements.discardBtn.addEventListener('click', discardPhoto);
         elements.saveBtn.addEventListener('click', savePhoto);
         elements.galleryBackBtn.addEventListener('click', showCamera);
-        elements.settingsBtn.addEventListener('click', openSettings);
-        elements.closeSettingsBtn.addEventListener('click', closeSettings);
-        elements.saveSettingsBtn.addEventListener('click', saveSettings);
-        elements.resetSettingsBtn.addEventListener('click', resetSettings);
         elements.closePhotoBtn.addEventListener('click', closePhotoModal);
         elements.deletePhotoBtn.addEventListener('click', deletePhoto);
         elements.downloadPhotoBtn.addEventListener('click', downloadPhoto);
 
-        // Range sliders
-        elements.watermarkOpacity.addEventListener('input', (e) => {
-            elements.opacityValue.textContent = e.target.value + '%';
-        });
-        elements.watermarkSize.addEventListener('input', (e) => {
-            elements.sizeValue.textContent = e.target.value + 'px';
-        });
-
-        // Close modals on overlay click
-        elements.settingsModal.addEventListener('click', (e) => {
-            if (e.target === elements.settingsModal) closeSettings();
-        });
+        // Close modal on overlay click
         elements.photoModal.addEventListener('click', (e) => {
             if (e.target === elements.photoModal) closePhotoModal();
         });
@@ -121,7 +81,6 @@ const App = (() => {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeSettings();
                 closePhotoModal();
             }
             if (e.code === 'Space' && !elements.cameraSection.classList.contains('hidden')) {
@@ -136,11 +95,9 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            // Build constraints - prefer deviceId if we have enumerated devices
             let constraints;
 
             if (videoDevices.length > 0 && videoDevices[currentDeviceIndex]) {
-                // Use specific device ID (doesn't trigger new permission prompt)
                 constraints = {
                     video: {
                         deviceId: { exact: videoDevices[currentDeviceIndex].deviceId },
@@ -150,7 +107,6 @@ const App = (() => {
                     audio: false
                 };
             } else {
-                // First time - use facingMode
                 constraints = {
                     video: {
                         facingMode: facingMode,
@@ -167,7 +123,6 @@ const App = (() => {
 
             await elements.cameraFeed.play();
 
-            // Enumerate devices after we have permission (required for full device info)
             if (videoDevices.length === 0) {
                 await enumerateVideoDevices();
             }
@@ -190,7 +145,6 @@ const App = (() => {
             videoDevices = devices.filter(device => device.kind === 'videoinput');
             hasMultipleCameras = videoDevices.length > 1;
 
-            // Find which device we're currently using and set the index
             if (currentStream) {
                 const currentTrack = currentStream.getVideoTracks()[0];
                 if (currentTrack) {
@@ -204,7 +158,6 @@ const App = (() => {
                 }
             }
 
-            // Hide switch button if only one camera
             if (!hasMultipleCameras && elements.switchCameraBtn) {
                 elements.switchCameraBtn.style.visibility = 'hidden';
             }
@@ -229,12 +182,9 @@ const App = (() => {
 
         updateCameraStatus('Switching camera...');
 
-        // Cycle to next camera
         currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
         const newDeviceId = videoDevices[currentDeviceIndex].deviceId;
 
-        // Keep reference to old stream - DO NOT stop it yet
-        // Firefox mobile requires an active stream to avoid re-prompting for permission
         const oldStream = currentStream;
 
         try {
@@ -247,16 +197,13 @@ const App = (() => {
                 audio: false
             };
 
-            // Get new stream WHILE old stream is still active
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            // Now we have the new stream, assign it to video element
             currentStream = newStream;
             elements.cameraFeed.srcObject = newStream;
 
             await elements.cameraFeed.play();
 
-            // NOW stop the old stream (after new one is working)
             if (oldStream) {
                 oldStream.getTracks().forEach(track => track.stop());
             }
@@ -270,13 +217,11 @@ const App = (() => {
             console.error('Error switching camera:', error);
             showToast('Could not switch camera', 'error');
 
-            // Restore the old stream if switch failed
             if (oldStream && !currentStream) {
                 currentStream = oldStream;
                 elements.cameraFeed.srcObject = oldStream;
             }
 
-            // Revert to previous camera index
             currentDeviceIndex = (currentDeviceIndex - 1 + videoDevices.length) % videoDevices.length;
         }
     }
@@ -306,7 +251,6 @@ const App = (() => {
             elements.cameraFeed.classList.remove('capture-flash');
         }, 200);
 
-        // Apply watermarks and show preview
         applyWatermarks();
     }
 
@@ -346,16 +290,8 @@ const App = (() => {
     function buildInvisibleData() {
         const parts = [];
 
-        if (settings.invisibleText) {
-            parts.push(settings.invisibleText);
-        }
-
         if (settings.includeTimestamp) {
             parts.push(`Time: ${new Date().toISOString()}`);
-        }
-
-        if (settings.includeLocation && userLocation) {
-            parts.push(`Loc: ${userLocation.lat.toFixed(6)},${userLocation.lng.toFixed(6)}`);
         }
 
         if (settings.includeUserAgent) {
@@ -495,76 +431,6 @@ const App = (() => {
             link.href = photo.data;
             link.click();
             showToast('Photo downloaded', 'success');
-        }
-    }
-
-    // Settings Functions
-    function openSettings() {
-        elements.visibleWatermarkText.value = settings.visibleText;
-        elements.watermarkPosition.value = settings.position;
-        elements.watermarkOpacity.value = settings.opacity;
-        elements.watermarkSize.value = settings.size;
-        elements.opacityValue.textContent = settings.opacity + '%';
-        elements.sizeValue.textContent = settings.size + 'px';
-        elements.invisibleWatermarkText.value = settings.invisibleText;
-        elements.includeTimestamp.checked = settings.includeTimestamp;
-        elements.includeLocation.checked = settings.includeLocation;
-        elements.includeUserAgent.checked = settings.includeUserAgent;
-        elements.settingsModal.classList.remove('hidden');
-    }
-
-    function closeSettings() {
-        elements.settingsModal.classList.add('hidden');
-    }
-
-    function saveSettings() {
-        settings.visibleText = elements.visibleWatermarkText.value;
-        settings.position = elements.watermarkPosition.value;
-        settings.opacity = parseInt(elements.watermarkOpacity.value);
-        settings.size = parseInt(elements.watermarkSize.value);
-        settings.invisibleText = elements.invisibleWatermarkText.value;
-        settings.includeTimestamp = elements.includeTimestamp.checked;
-        settings.includeLocation = elements.includeLocation.checked;
-        settings.includeUserAgent = elements.includeUserAgent.checked;
-
-        localStorage.setItem('realpic_settings', JSON.stringify(settings));
-
-        if (settings.includeLocation) requestLocation();
-
-        closeSettings();
-        showToast('Settings saved', 'success');
-    }
-
-    function resetSettings() {
-        settings = {
-            visibleText: '© RealPic Lite',
-            position: 'bottom-right',
-            opacity: 70,
-            size: 24,
-            invisibleText: '',
-            includeTimestamp: true,
-            includeLocation: false,
-            includeUserAgent: true
-        };
-        openSettings();
-    }
-
-    function loadSettings() {
-        try {
-            const stored = localStorage.getItem('realpic_settings');
-            if (stored) settings = { ...settings, ...JSON.parse(stored) };
-        } catch (e) { }
-    }
-
-    // Location
-    function requestLocation() {
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                },
-                () => { userLocation = null; }
-            );
         }
     }
 

@@ -5,7 +5,7 @@
 
 const Watermark = (() => {
     const defaultSettings = {
-        text: '© RealPic Lite',
+        text: 'RealPic',
         position: 'bottom-right',
         opacity: 70,
         size: 24,

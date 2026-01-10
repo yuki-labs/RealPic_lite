@@ -25,13 +25,6 @@
                 </svg>
                 <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
             </div>
-            <button class="settings-btn" id="settingsBtn" aria-label="Settings">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <path
-                        d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83" />
-                </svg>
-            </button>
         </header>
 
         <!-- Main Content -->
@@ -63,7 +56,6 @@
                         title="Flip Camera">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round">
-                            <!-- Circular refresh/flip arrows -->
                             <path d="M17 2l4 4-4 4" />
                             <path d="M3 11V9a4 4 0 014-4h14" />
                             <path d="M7 22l-4-4 4-4" />
@@ -141,106 +133,6 @@
                 </div>
             </section>
         </main>
-
-        <!-- Settings Modal -->
-        <div class="modal-overlay hidden" id="settingsModal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h2>Watermark Settings</h2>
-                    <button class="close-btn" id="closeSettingsBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-content">
-                    <!-- Visible Watermark Settings -->
-                    <div class="settings-group">
-                        <h3>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            Visible Watermark
-                        </h3>
-                        <div class="setting-item">
-                            <label for="visibleWatermarkText">Text</label>
-                            <input type="text" id="visibleWatermarkText" placeholder="© Your Name" maxlength="50">
-                        </div>
-                        <div class="setting-item">
-                            <label for="watermarkPosition">Position</label>
-                            <select id="watermarkPosition">
-                                <option value="bottom-right">Bottom Right</option>
-                                <option value="bottom-left">Bottom Left</option>
-                                <option value="top-right">Top Right</option>
-                                <option value="top-left">Top Left</option>
-                                <option value="center">Center</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <label for="watermarkOpacity">Opacity</label>
-                            <div class="range-container">
-                                <input type="range" id="watermarkOpacity" min="10" max="100" value="70">
-                                <span class="range-value" id="opacityValue">70%</span>
-                            </div>
-                        </div>
-                        <div class="setting-item">
-                            <label for="watermarkSize">Size</label>
-                            <div class="range-container">
-                                <input type="range" id="watermarkSize" min="12" max="48" value="24">
-                                <span class="range-value" id="sizeValue">24px</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Invisible Watermark Settings -->
-                    <div class="settings-group">
-                        <h3>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path
-                                    d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                            </svg>
-                            Invisible Watermark (Steganography)
-                        </h3>
-                        <p class="settings-description">
-                            Hidden data embedded in image pixels. Can be extracted to verify authenticity.
-                        </p>
-                        <div class="setting-item">
-                            <label for="invisibleWatermarkText">Hidden Message</label>
-                            <input type="text" id="invisibleWatermarkText" placeholder="Secret verification data"
-                                maxlength="100">
-                        </div>
-                        <div class="setting-item toggle-item">
-                            <label for="includeTimestamp">Include Timestamp</label>
-                            <label class="toggle">
-                                <input type="checkbox" id="includeTimestamp" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item toggle-item">
-                            <label for="includeLocation">Include Location (if available)</label>
-                            <label class="toggle">
-                                <input type="checkbox" id="includeLocation">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item toggle-item">
-                            <label for="includeUserAgent">Include User Agent</label>
-                            <label class="toggle">
-                                <input type="checkbox" id="includeUserAgent" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" id="resetSettingsBtn">Reset to Defaults</button>
-                    <button class="btn-primary" id="saveSettingsBtn">Save Settings</button>
-                </div>
-            </div>
-        </div>
 
         <!-- Photo Detail Modal -->
         <div class="modal-overlay hidden" id="photoModal">
