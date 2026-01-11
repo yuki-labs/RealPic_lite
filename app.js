@@ -447,29 +447,60 @@ const App = (() => {
         showCamera();
     }
 
-    // Copy to Clipboard Function
+    // Copy to Clipboard Function (with Share fallback for mobile)
     async function copyPhoto() {
-        try {
-            const canvas = elements.previewCanvas;
+        const canvas = elements.previewCanvas;
 
-            // Convert canvas to blob
-            const blob = await new Promise((resolve, reject) => {
-                canvas.toBlob((blob) => {
-                    if (blob) resolve(blob);
+        // Convert canvas to blob
+        let blob;
+        try {
+            blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((b) => {
+                    if (b) resolve(b);
                     else reject(new Error('Failed to create blob'));
                 }, 'image/png');
             });
-
-            // Use Clipboard API to copy
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-
-            showToast('Image copied to clipboard!', 'success');
         } catch (error) {
-            console.error('Copy failed:', error);
-            showToast('Could not copy image. Try downloading instead.', 'error');
+            console.error('Blob creation failed:', error);
+            showToast('Could not process image.', 'error');
+            return;
         }
+
+        // Try Clipboard API first (works on desktop browsers)
+        if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                showToast('Image copied to clipboard!', 'success');
+                return;
+            } catch (clipboardError) {
+                console.log('Clipboard API failed, trying Web Share API...', clipboardError);
+            }
+        }
+
+        // Fallback: Try Web Share API (works on mobile)
+        if (navigator.share && navigator.canShare) {
+            try {
+                const file = new File([blob], `realpic_${Date.now()}.png`, { type: 'image/png' });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    showToast('Image shared!', 'success');
+                    return;
+                }
+            } catch (shareError) {
+                // User cancelled share or share failed
+                if (shareError.name !== 'AbortError') {
+                    console.log('Web Share API failed:', shareError);
+                }
+                return;
+            }
+        }
+
+        // Neither worked
+        showToast('Copy not supported. Use Download instead.', 'error');
     }
 
     // Toast Notifications
