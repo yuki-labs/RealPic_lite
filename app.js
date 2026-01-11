@@ -7,6 +7,7 @@
 const App = (() => {
     // State
     let currentStream = null;
+    let currentVideoDeviceId = null; // Track specific camera device
     let facingMode = 'environment'; // 'environment' = rear, 'user' = front
     let currentMode = 'photo'; // 'photo' or 'video'
     let isRecording = false;
@@ -193,15 +194,33 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            // Request video first
-            const videoStream = await navigator.mediaDevices.getUserMedia({
-                video: {
+            // Build video constraints - use deviceId if we have one, otherwise use facingMode
+            let videoConstraints;
+            if (currentVideoDeviceId) {
+                videoConstraints = {
+                    deviceId: { exact: currentVideoDeviceId },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                };
+            } else {
+                videoConstraints = {
                     facingMode: facingMode,
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
-                },
+                };
+            }
+
+            // Request video first
+            const videoStream = await navigator.mediaDevices.getUserMedia({
+                video: videoConstraints,
                 audio: false
             });
+
+            // Store the device ID for future use
+            const videoTrack = videoStream.getVideoTracks()[0];
+            if (videoTrack) {
+                currentVideoDeviceId = videoTrack.getSettings().deviceId;
+            }
 
             // Then request audio separately (Firefox works better this way)
             let audioStream = null;
@@ -244,6 +263,11 @@ const App = (() => {
 
         } catch (error) {
             console.error('Camera error:', error);
+            // If deviceId failed, clear it and try with facingMode
+            if (currentVideoDeviceId) {
+                currentVideoDeviceId = null;
+                return initCamera();
+            }
             updateCameraStatus('Camera access denied');
             showToast('Could not access camera. Please check permissions.', 'error');
         }
@@ -304,7 +328,7 @@ const App = (() => {
         const oldStream = currentStream;
 
         try {
-            // Request video first
+            // Request video first - always use facingMode for switching (clear deviceId)
             let videoStream = null;
 
             try {
@@ -326,6 +350,12 @@ const App = (() => {
                     },
                     audio: false
                 });
+            }
+
+            // Store the new device ID for future use
+            const videoTrack = videoStream.getVideoTracks()[0];
+            if (videoTrack) {
+                currentVideoDeviceId = videoTrack.getSettings().deviceId;
             }
 
             // Then request audio separately
