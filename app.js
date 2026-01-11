@@ -6,12 +6,7 @@
 const App = (() => {
     // State
     let currentStream = null;
-    let facingMode = 'environment';
-
-    // Camera device tracking
-    let videoDevices = [];
-    let currentDeviceIndex = 0;
-    let hasMultipleCameras = false;
+    let facingMode = 'environment'; // 'environment' = rear, 'user' = front
 
     // User-configurable settings
     const settings = {
@@ -138,37 +133,20 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            let constraints;
-
-            if (videoDevices.length > 0 && videoDevices[currentDeviceIndex]) {
-                constraints = {
-                    video: {
-                        deviceId: { exact: videoDevices[currentDeviceIndex].deviceId },
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                };
-            } else {
-                constraints = {
-                    video: {
-                        facingMode: facingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                };
-            }
+            const constraints = {
+                video: {
+                    facingMode: facingMode,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            };
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             elements.cameraFeed.srcObject = currentStream;
             elements.cameraFeed.setAttribute('data-active', 'true');
 
             await elements.cameraFeed.play();
-
-            if (videoDevices.length === 0) {
-                await enumerateVideoDevices();
-            }
 
             updateCameraStatus('Ready', true);
             updateContainerSize();
@@ -180,35 +158,6 @@ const App = (() => {
             console.error('Camera error:', error);
             updateCameraStatus('Camera access denied');
             showToast('Could not access camera. Please check permissions.', 'error');
-        }
-    }
-
-    async function enumerateVideoDevices() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            videoDevices = devices.filter(device => device.kind === 'videoinput');
-            hasMultipleCameras = videoDevices.length > 1;
-
-            if (currentStream) {
-                const currentTrack = currentStream.getVideoTracks()[0];
-                if (currentTrack) {
-                    const currentSettings = currentTrack.getSettings();
-                    const currentDeviceId = currentSettings.deviceId;
-
-                    const foundIndex = videoDevices.findIndex(d => d.deviceId === currentDeviceId);
-                    if (foundIndex !== -1) {
-                        currentDeviceIndex = foundIndex;
-                    }
-                }
-            }
-
-            if (!hasMultipleCameras && elements.switchCameraBtn) {
-                elements.switchCameraBtn.style.visibility = 'hidden';
-            }
-
-            console.log(`Found ${videoDevices.length} camera(s)`);
-        } catch (error) {
-            console.warn('Could not enumerate devices:', error);
         }
     }
 
@@ -254,22 +203,17 @@ const App = (() => {
     }
 
     async function switchCamera() {
-        if (!hasMultipleCameras || videoDevices.length < 2) {
-            showToast('No other camera available', 'error');
-            return;
-        }
-
         updateCameraStatus('Switching camera...');
 
-        currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-        const newDeviceId = videoDevices[currentDeviceIndex].deviceId;
+        // Toggle between front and rear
+        facingMode = facingMode === 'environment' ? 'user' : 'environment';
 
         const oldStream = currentStream;
 
         try {
             const constraints = {
                 video: {
-                    deviceId: { exact: newDeviceId },
+                    facingMode: { exact: facingMode },
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
@@ -295,14 +239,16 @@ const App = (() => {
 
         } catch (error) {
             console.error('Error switching camera:', error);
-            showToast('Could not switch camera', 'error');
+
+            // Revert facingMode and try with non-exact constraint
+            facingMode = facingMode === 'environment' ? 'user' : 'environment';
 
             if (oldStream && !currentStream) {
                 currentStream = oldStream;
                 elements.cameraFeed.srcObject = oldStream;
             }
 
-            currentDeviceIndex = (currentDeviceIndex - 1 + videoDevices.length) % videoDevices.length;
+            showToast('Could not switch camera', 'error');
         }
     }
 
