@@ -37,7 +37,29 @@ const App = (() => {
         cacheElements();
         loadSettings();
         bindEvents();
-        initCamera();
+
+        // Firefox mobile requires a user gesture to access camera
+        // Detect Firefox mobile and show tap-to-start prompt
+        const isFirefoxMobile = /Firefox/.test(navigator.userAgent) && /Android|Mobile/.test(navigator.userAgent);
+
+        if (isFirefoxMobile) {
+            showTapToStart();
+        } else {
+            initCamera();
+        }
+    }
+
+    function showTapToStart() {
+        updateCameraStatus('Tap anywhere to start camera');
+
+        const tapHandler = async (e) => {
+            document.removeEventListener('click', tapHandler);
+            document.removeEventListener('touchstart', tapHandler);
+            await initCamera();
+        };
+
+        document.addEventListener('click', tapHandler);
+        document.addEventListener('touchstart', tapHandler);
     }
 
     function cacheElements() {
