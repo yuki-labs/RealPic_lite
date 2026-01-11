@@ -119,7 +119,7 @@ const App = (() => {
         // Update capture button appearance
         elements.captureBtn.classList.toggle('video-mode', mode === 'video');
 
-        // Update capture button inner for video mode (red dot)
+        // Update capture button inner for video mode (red square)
         if (mode === 'video') {
             elements.captureBtnInner.style.background = '#ef4444';
             elements.captureBtnInner.style.borderRadius = '8px';
@@ -192,16 +192,33 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            const constraints = {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: true // Enable audio for video recording
-            };
+            // Try to get camera with audio first, fall back to video-only
+            let stream = null;
 
-            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            // First attempt: video + audio
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: true
+                });
+            } catch (audioError) {
+                console.log('Could not get audio, trying video only:', audioError);
+                // Fallback: video only (Firefox sometimes has issues with audio + video together)
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
+            }
+
+            currentStream = stream;
             elements.cameraFeed.srcObject = currentStream;
             elements.cameraFeed.setAttribute('data-active', 'true');
 
@@ -270,22 +287,36 @@ const App = (() => {
         updateCameraStatus('Switching camera...');
 
         // Toggle between front and rear
-        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+        const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
 
         const oldStream = currentStream;
 
         try {
-            const constraints = {
-                video: {
-                    facingMode: { exact: facingMode },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: true
-            };
+            // Try with exact constraint first, then fall back to preferred
+            let newStream = null;
 
-            const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+            try {
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { exact: newFacingMode },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: true
+                });
+            } catch (exactError) {
+                // Fallback without exact and without audio
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: newFacingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
+            }
 
+            facingMode = newFacingMode;
             currentStream = newStream;
             elements.cameraFeed.srcObject = newStream;
 
@@ -303,9 +334,6 @@ const App = (() => {
 
         } catch (error) {
             console.error('Error switching camera:', error);
-
-            // Revert facingMode
-            facingMode = facingMode === 'environment' ? 'user' : 'environment';
 
             if (oldStream && !currentStream) {
                 currentStream = oldStream;
@@ -332,10 +360,18 @@ const App = (() => {
         }
 
         try {
+            // Check if we have audio
+            const hasAudio = currentStream.getAudioTracks().length > 0;
+            if (!hasAudio) {
+                console.log('Recording without audio - no audio track available');
+            }
+
             // Determine supported mime type
             const mimeTypes = [
                 'video/webm;codecs=vp9,opus',
                 'video/webm;codecs=vp8,opus',
+                'video/webm;codecs=vp9',
+                'video/webm;codecs=vp8',
                 'video/webm',
                 'video/mp4'
             ];
