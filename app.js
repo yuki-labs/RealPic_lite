@@ -757,9 +757,14 @@ const App = (() => {
     }
 
     function discardVideo() {
+        // Clear event handlers to prevent error toast when clearing src
+        elements.videoPreview.onloadedmetadata = null;
+        elements.videoPreview.onerror = null;
+
         // Clean up blob URL
         if (elements.videoPreview.dataset.blobUrl) {
             URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
+            delete elements.videoPreview.dataset.blobUrl;
         }
         elements.videoPreview.src = '';
         recordedChunks = [];
