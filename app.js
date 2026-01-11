@@ -46,6 +46,7 @@ const App = (() => {
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
         elements.settingsBtn = document.getElementById('settingsBtn');
         elements.discardBtn = document.getElementById('discardBtn');
+        elements.copyBtn = document.getElementById('copyBtn');
         elements.saveBtn = document.getElementById('saveBtn');
         elements.settingsModal = document.getElementById('settingsModal');
         elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -62,6 +63,7 @@ const App = (() => {
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
         elements.discardBtn.addEventListener('click', discardPhoto);
+        elements.copyBtn.addEventListener('click', copyPhoto);
         elements.saveBtn.addEventListener('click', downloadPhoto);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
@@ -443,6 +445,31 @@ const App = (() => {
         link.click();
         showToast('Photo downloaded!', 'success');
         showCamera();
+    }
+
+    // Copy to Clipboard Function
+    async function copyPhoto() {
+        try {
+            const canvas = elements.previewCanvas;
+
+            // Convert canvas to blob
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                    else reject(new Error('Failed to create blob'));
+                }, 'image/png');
+            });
+
+            // Use Clipboard API to copy
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+
+            showToast('Image copied to clipboard!', 'success');
+        } catch (error) {
+            console.error('Copy failed:', error);
+            showToast('Could not copy image. Try downloading instead.', 'error');
+        }
     }
 
     // Toast Notifications
