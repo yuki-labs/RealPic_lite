@@ -46,7 +46,6 @@ const App = (() => {
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
         elements.settingsBtn = document.getElementById('settingsBtn');
         elements.discardBtn = document.getElementById('discardBtn');
-        elements.copyBtn = document.getElementById('copyBtn');
         elements.saveBtn = document.getElementById('saveBtn');
         elements.settingsModal = document.getElementById('settingsModal');
         elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -64,7 +63,6 @@ const App = (() => {
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
         elements.discardBtn.addEventListener('click', discardPhoto);
-        elements.copyBtn.addEventListener('click', copyPhoto);
         elements.saveBtn.addEventListener('click', downloadPhoto);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
@@ -451,68 +449,6 @@ const App = (() => {
         link.click();
         showToast('Photo downloaded!', 'success');
         showCamera();
-    }
-
-    // Share/Copy Function (with multiple fallbacks)
-    async function copyPhoto() {
-        const canvas = elements.previewCanvas;
-
-        // Convert canvas to blob
-        let blob;
-        try {
-            blob = await new Promise((resolve, reject) => {
-                canvas.toBlob((b) => {
-                    if (b) resolve(b);
-                    else reject(new Error('Failed to create blob'));
-                }, 'image/png');
-            });
-        } catch (error) {
-            console.error('Blob creation failed:', error);
-            showToast('Could not process image.', 'error');
-            return;
-        }
-
-        // Try Clipboard API first (works on desktop Chrome, Edge, Safari)
-        if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-            try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                showToast('Image copied to clipboard!', 'success');
-                return;
-            } catch (clipboardError) {
-                console.log('Clipboard API failed, trying Web Share API...', clipboardError);
-            }
-        }
-
-        // Try Web Share API (works on mobile Chrome, Safari)
-        if (navigator.share && navigator.canShare) {
-            try {
-                const file = new File([blob], `realpic_${Date.now()}.png`, { type: 'image/png' });
-                const shareData = { files: [file] };
-
-                if (navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                    showToast('Image shared!', 'success');
-                    return;
-                }
-            } catch (shareError) {
-                // User cancelled share - don't show error
-                if (shareError.name === 'AbortError') {
-                    return;
-                }
-                console.log('Web Share API failed:', shareError);
-            }
-        }
-
-        // Final fallback: Auto-download (works everywhere including Firefox)
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `realpic_${Date.now()}.png`;
-        link.href = url;
-        link.click();
-        URL.revokeObjectURL(url);
-        showToast('Image downloaded!', 'success');
     }
 
     // Toast Notifications
