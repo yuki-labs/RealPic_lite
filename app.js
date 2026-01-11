@@ -628,15 +628,24 @@ const App = (() => {
             customText: settings.customText
         });
 
-        // Apply invisible watermark (steganography)
+        // Apply robust invisible watermark (DCT-based, survives compression/resizing)
         const invisibleData = buildInvisibleData();
         if (invisibleData) {
             const imageData = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
             try {
-                const encodedData = Steganography.encode(imageData, invisibleData);
-                ctx.putImageData(encodedData, 0, 0);
+                // Use RobustWatermark for compression-resistant invisible watermarking
+                const result = RobustWatermark.encode(imageData, invisibleData);
+                ctx.putImageData(result.imageData, 0, 0);
+                console.log(`Robust watermark embedded: ${result.bitsEmbedded} bits with redundancy`);
             } catch (error) {
-                console.warn('Steganography encoding failed:', error);
+                console.warn('Robust watermark encoding failed, falling back to LSB:', error);
+                // Fallback to basic steganography if robust fails
+                try {
+                    const encodedData = Steganography.encode(imageData, invisibleData);
+                    ctx.putImageData(encodedData, 0, 0);
+                } catch (fallbackError) {
+                    console.warn('All watermarking methods failed:', fallbackError);
+                }
             }
         }
 

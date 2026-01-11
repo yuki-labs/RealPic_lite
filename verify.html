@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Verify RealPic watermarks - Check if an image has an authentic RealPic watermark">
+    <title>RealPic Lite - Watermark Verifier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .verify-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .verify-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .verify-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .verify-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--surface);
+            margin-bottom: 2rem;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .drop-zone svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .preview-area {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .preview-area.active {
+            display: flex;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: var(--surface);
+        }
+
+        .result-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .result-icon.success {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .result-icon.success svg {
+            stroke: #22c55e;
+        }
+
+        .result-icon.warning {
+            background: rgba(234, 179, 8, 0.15);
+        }
+
+        .result-icon.warning svg {
+            stroke: #eab308;
+        }
+
+        .result-icon.error {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .result-icon.error svg {
+            stroke: #ef4444;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .result-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .result-details {
+            background: var(--background);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            font-size: 0.875rem;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .confidence-fill.high {
+            background: linear-gradient(90deg, #22c55e, #10b981);
+        }
+
+        .confidence-fill.medium {
+            background: linear-gradient(90deg, #eab308, #f59e0b);
+        }
+
+        .confidence-fill.low {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .verify-another {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .verify-another button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .verify-another button:hover {
+            background: var(--surface);
+            border-color: var(--primary);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .loading-spinner {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .loading-spinner.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden-input {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+                </svg>
+                <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="verify-container">
+                <a href="index.html" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to Camera
+                </a>
+
+                <div class="verify-header">
+                    <h1>🔍 Watermark Verifier</h1>
+                    <p>Upload an image to check if it contains a valid RealPic watermark</p>
+                </div>
+
+                <div class="drop-zone" id="dropZone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <h3>Drop image here or click to upload</h3>
+                    <p>Supports PNG, JPEG, and WebP images</p>
+                    <input type="file" id="fileInput" class="hidden-input" accept="image/*">
+                </div>
+
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner"></div>
+                </div>
+
+                <div class="preview-area" id="previewArea">
+                    <img id="imagePreview" class="image-preview" alt="Uploaded image">
+
+                    <div class="result-card" id="resultCard">
+                        <div class="result-header">
+                            <div class="result-icon" id="resultIcon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="result-title" id="resultTitle">Analyzing...</div>
+                                <div class="result-subtitle" id="resultSubtitle">Please wait</div>
+                            </div>
+                        </div>
+
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                        </div>
+
+                        <div class="result-details" id="resultDetails" style="display: none;">
+                            <div class="detail-row">
+                                <span class="detail-label">Watermark Type</span>
+                                <span class="detail-value" id="watermarkType">-</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Confidence</span>
+                                <span class="detail-value" id="confidenceValue">-</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Embedded Message</span>
+                                <span class="detail-value" id="embeddedMessage">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verify-another">
+                        <button id="verifyAnotherBtn">Verify Another Image</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="robust-watermark.js"></script>
+    <script src="steganography.js"></script>
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const previewArea = document.getElementById('previewArea');
+        const imagePreview = document.getElementById('imagePreview');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultSubtitle = document.getElementById('resultSubtitle');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const resultDetails = document.getElementById('resultDetails');
+        const watermarkType = document.getElementById('watermarkType');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const embeddedMessage = document.getElementById('embeddedMessage');
+        const verifyAnotherBtn = document.getElementById('verifyAnotherBtn');
+
+        // Drop zone events
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImage(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        });
+
+        verifyAnotherBtn.addEventListener('click', () => {
+            previewArea.classList.remove('active');
+            dropZone.style.display = 'block';
+            fileInput.value = '';
+        });
+
+        function processImage(file) {
+            dropZone.style.display = 'none';
+            loadingSpinner.classList.add('active');
+            previewArea.classList.remove('active');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    imagePreview.src = e.target.result;
+
+                    // Create canvas to get image data
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                    // Verify watermarks
+                    setTimeout(() => {
+                        verifyWatermarks(imageData);
+                    }, 500);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function verifyWatermarks(imageData) {
+            loadingSpinner.classList.remove('active');
+            previewArea.classList.add('active');
+            resultDetails.style.display = 'block';
+
+            let robustResult = null;
+            let lsbResult = null;
+
+            // Try robust watermark first
+            try {
+                robustResult = RobustWatermark.decode(imageData);
+            } catch (e) {
+                console.warn('Robust decode error:', e);
+            }
+
+            // Also try LSB steganography
+            try {
+                lsbResult = Steganography.decode(imageData);
+            } catch (e) {
+                console.warn('LSB decode error:', e);
+            }
+
+            // Determine result
+            if (robustResult && robustResult.found && robustResult.confidence > 0.6) {
+                // Robust watermark found
+                showResult('success',
+                    'Authentic RealPic Watermark',
+                    'This image contains a robust, tamper-resistant watermark',
+                    robustResult.confidence,
+                    'DCT-Domain (Robust)',
+                    robustResult.message || 'Unable to decode message'
+                );
+            } else if (lsbResult) {
+                // LSB watermark found (less reliable)
+                showResult('warning',
+                    'Legacy Watermark Detected',
+                    'This image has an older LSB watermark (may have been modified)',
+                    0.5,
+                    'LSB Steganography (Legacy)',
+                    lsbResult
+                );
+            } else if (robustResult && robustResult.confidence > 0.3) {
+                // Partial match - possibly modified
+                showResult('warning',
+                    'Possible Watermark Detected',
+                    'The image may have been modified or compressed',
+                    robustResult.confidence,
+                    'Partially Recovered',
+                    robustResult.message || 'Watermark damaged'
+                );
+            } else {
+                // No watermark found
+                showResult('error',
+                    'No Watermark Found',
+                    'This image does not contain a valid RealPic watermark',
+                    0,
+                    'None',
+                    'N/A'
+                );
+            }
+        }
+
+        function showResult(type, title, subtitle, confidence, wmType, message) {
+            // Update icon
+            resultIcon.className = `result-icon ${type}`;
+            if (type === 'success') {
+                resultIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>`;
+            } else if (type === 'warning') {
+                resultIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>`;
+            } else {
+                resultIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>`;
+            }
+
+            resultTitle.textContent = title;
+            resultSubtitle.textContent = subtitle;
+
+            // Update confidence bar
+            const percent = Math.round(confidence * 100);
+            confidenceFill.style.width = `${percent}%`;
+            confidenceFill.className = `confidence-fill ${confidence > 0.7 ? 'high' : confidence > 0.4 ? 'medium' : 'low'}`;
+
+            // Update details
+            watermarkType.textContent = wmType;
+            confidenceValue.textContent = `${percent}%`;
+            embeddedMessage.textContent = message || 'N/A';
+        }
+    </script>
+</body>
+
+</html>
