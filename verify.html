@@ -313,8 +313,8 @@
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <h3>Drop image here or click to upload</h3>
-                    <p>Supports PNG, JPEG, and WebP images</p>
+                    <h3>Drop image here, click to upload, or paste</h3>
+                    <p>Supports PNG, JPEG, and WebP • Press Ctrl+V to paste</p>
                     <input type="file" id="fileInput" class="hidden-input" accept="image/*">
                 </div>
 
@@ -400,6 +400,23 @@
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
                 processImage(file);
+            }
+        });
+
+        // Clipboard paste support
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        processImage(file);
+                    }
+                    break;
+                }
             }
         });
 
