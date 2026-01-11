@@ -193,16 +193,44 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            const stream = await navigator.mediaDevices.getUserMedia({
+            // Request video first
+            const videoStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: facingMode,
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
-                audio: true
+                audio: false
             });
 
-            currentStream = stream;
+            // Then request audio separately (Firefox works better this way)
+            let audioStream = null;
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    video: false,
+                    audio: true
+                });
+            } catch (audioError) {
+                console.warn('Could not get audio:', audioError);
+                showToast('Microphone access denied. Videos will have no audio.', 'error');
+            }
+
+            // Combine video and audio tracks into one stream
+            const combinedStream = new MediaStream();
+
+            // Add video tracks
+            videoStream.getVideoTracks().forEach(track => {
+                combinedStream.addTrack(track);
+            });
+
+            // Add audio tracks if available
+            if (audioStream) {
+                audioStream.getAudioTracks().forEach(track => {
+                    combinedStream.addTrack(track);
+                });
+            }
+
+            currentStream = combinedStream;
             elements.cameraFeed.srcObject = currentStream;
             elements.cameraFeed.setAttribute('data-active', 'true');
 
@@ -276,33 +304,57 @@ const App = (() => {
         const oldStream = currentStream;
 
         try {
-            // Try with exact constraint first, then fall back to preferred
-            let newStream = null;
+            // Request video first
+            let videoStream = null;
 
             try {
-                newStream = await navigator.mediaDevices.getUserMedia({
+                videoStream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { exact: newFacingMode },
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     },
-                    audio: true
+                    audio: false
                 });
             } catch (exactError) {
                 // Fallback without exact constraint
-                newStream = await navigator.mediaDevices.getUserMedia({
+                videoStream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: newFacingMode,
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     },
+                    audio: false
+                });
+            }
+
+            // Then request audio separately
+            let audioStream = null;
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    video: false,
                     audio: true
+                });
+            } catch (audioError) {
+                console.warn('Could not get audio:', audioError);
+            }
+
+            // Combine video and audio tracks into one stream
+            const combinedStream = new MediaStream();
+
+            videoStream.getVideoTracks().forEach(track => {
+                combinedStream.addTrack(track);
+            });
+
+            if (audioStream) {
+                audioStream.getAudioTracks().forEach(track => {
+                    combinedStream.addTrack(track);
                 });
             }
 
             facingMode = newFacingMode;
-            currentStream = newStream;
-            elements.cameraFeed.srcObject = newStream;
+            currentStream = combinedStream;
+            elements.cameraFeed.srcObject = combinedStream;
 
             await elements.cameraFeed.play();
 
