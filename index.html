@@ -4,15 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="RealPic Lite - Capture photos and videos with visible and invisible watermarks for authenticity verification">
-    <title>RealPic Lite - Watermarked Photo & Video Capture</title>
-    <!-- Use system fonts as fallback, load Inter only if cached -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" as="style"
-        onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
-    </noscript>
+    <meta name="description" content="RealPic Lite - Capture photos and videos with watermarks">
+    <title>RealPic Lite</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -46,13 +39,11 @@
                     <canvas id="captureCanvas" class="hidden"></canvas>
                     <canvas id="videoRecordCanvas" class="hidden"></canvas>
 
-                    <!-- Camera status -->
                     <div class="camera-status" id="cameraStatus">
                         <div class="status-dot"></div>
                         <span>Initializing camera...</span>
                     </div>
 
-                    <!-- Recording indicator -->
                     <div class="recording-indicator hidden" id="recordingIndicator">
                         <div class="recording-dot"></div>
                         <span id="recordingTime">00:00</span>
@@ -81,8 +72,7 @@
                 <div class="camera-controls">
                     <button class="control-btn secondary" id="switchCameraBtn" aria-label="Switch camera"
                         title="Flip Camera">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 2l4 4-4 4" />
                             <path d="M3 11V9a4 4 0 014-4h14" />
                             <path d="M7 22l-4-4 4-4" />
@@ -93,8 +83,7 @@
                         <div class="capture-btn-inner" id="captureBtnInner"></div>
                     </button>
                     <button class="control-btn secondary" id="settingsBtn" aria-label="Settings" title="Settings">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3" />
                             <path
                                 d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
@@ -103,11 +92,11 @@
                 </div>
             </section>
 
-            <!-- Photo Preview Section (hidden by default) -->
+            <!-- Photo Preview Section -->
             <section class="preview-section hidden" id="previewSection">
                 <div class="preview-container">
                     <canvas id="previewCanvas" class="hidden"></canvas>
-                    <img id="previewImage" alt="Watermarked photo - long press to save">
+                    <img id="previewImage" alt="Watermarked photo">
                     <div class="watermark-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -116,7 +105,6 @@
                         <span>Watermarked</span>
                     </div>
                 </div>
-
                 <div class="preview-controls">
                     <button class="control-btn danger" id="discardBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -136,7 +124,7 @@
                 </div>
             </section>
 
-            <!-- Video Preview Section (hidden by default) -->
+            <!-- Video Preview Section -->
             <section class="preview-section hidden" id="videoPreviewSection">
                 <div class="preview-container">
                     <video id="videoPreview" controls playsinline></video>
@@ -148,7 +136,6 @@
                         <span>Watermarked</span>
                     </div>
                 </div>
-
                 <div class="preview-controls">
                     <button class="control-btn danger" id="discardVideoBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -183,16 +170,7 @@
                 </div>
                 <div class="modal-content">
                     <div class="settings-group">
-                        <h3>
-                            <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                            Date & Time
-                        </h3>
+                        <h3>Date & Time</h3>
                         <div class="setting-item toggle-item">
                             <label>Show date and time</label>
                             <label class="toggle">
@@ -201,20 +179,8 @@
                             </label>
                         </div>
                     </div>
-
                     <div class="settings-group">
-                        <h3>
-                            <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="17" y1="10" x2="3" y2="10" />
-                                <line x1="21" y1="6" x2="3" y2="6" />
-                                <line x1="21" y1="14" x2="3" y2="14" />
-                                <line x1="17" y1="18" x2="3" y2="18" />
-                            </svg>
-                            Custom Text
-                        </h3>
-                        <p class="settings-description">Add optional text that appears between the date/time and user
-                            agent.</p>
+                        <h3>Custom Text</h3>
                         <div class="setting-item">
                             <input type="text" id="customText" placeholder="Enter custom text (optional)">
                         </div>
@@ -226,15 +192,12 @@
             </div>
         </div>
 
-        <!-- Toast Notifications -->
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <!-- Core scripts - minimal for fast load -->
     <script src="watermark.js"></script>
     <script src="steganography.js"></script>
     <script src="app.js"></script>
-    <!-- Robust watermark loaded dynamically when needed -->
 </body>
 
 </html>
