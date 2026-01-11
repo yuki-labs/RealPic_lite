@@ -37,29 +37,19 @@ const App = (() => {
         cacheElements();
         loadSettings();
         bindEvents();
+        initCamera();
 
-        // Firefox mobile requires a user gesture to access camera
-        // Detect Firefox mobile and show tap-to-start prompt
-        const isFirefoxMobile = /Firefox/.test(navigator.userAgent) && /Android|Mobile/.test(navigator.userAgent);
-
-        if (isFirefoxMobile) {
-            showTapToStart();
-        } else {
-            initCamera();
-        }
+        // Lazy load robust watermark in background after page is interactive
+        setTimeout(loadRobustWatermark, 1000);
     }
 
-    function showTapToStart() {
-        updateCameraStatus('Tap anywhere to start camera');
+    function loadRobustWatermark() {
+        if (typeof RobustWatermark !== 'undefined') return; // Already loaded
 
-        const tapHandler = async (e) => {
-            document.removeEventListener('click', tapHandler);
-            document.removeEventListener('touchstart', tapHandler);
-            await initCamera();
-        };
-
-        document.addEventListener('click', tapHandler);
-        document.addEventListener('touchstart', tapHandler);
+        const script = document.createElement('script');
+        script.src = 'robust-watermark.js';
+        script.async = true;
+        document.body.appendChild(script);
     }
 
     function cacheElements() {

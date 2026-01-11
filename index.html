@@ -7,9 +7,12 @@
     <meta name="description"
         content="RealPic Lite - Capture photos and videos with visible and invisible watermarks for authenticity verification">
     <title>RealPic Lite - Watermarked Photo & Video Capture</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Use system fonts as fallback, load Inter only if cached -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" as="style"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    </noscript>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -227,12 +230,11 @@
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <!-- Core scripts needed immediately -->
+    <!-- Core scripts - minimal for fast load -->
     <script src="watermark.js"></script>
     <script src="steganography.js"></script>
     <script src="app.js"></script>
-    <!-- Heavy watermark script - load after page is interactive -->
-    <script src="robust-watermark.js" defer></script>
+    <!-- Robust watermark loaded dynamically when needed -->
 </body>
 
 </html>
