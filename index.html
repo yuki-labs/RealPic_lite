@@ -227,10 +227,12 @@
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <script src="robust-watermark.js"></script>
-    <script src="steganography.js"></script>
+    <!-- Core scripts needed immediately -->
     <script src="watermark.js"></script>
+    <script src="steganography.js"></script>
     <script src="app.js"></script>
+    <!-- Heavy watermark script - load after page is interactive -->
+    <script src="robust-watermark.js" defer></script>
 </body>
 
 </html>

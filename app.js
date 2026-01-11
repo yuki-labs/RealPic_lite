@@ -655,12 +655,19 @@ const App = (() => {
         if (invisibleData) {
             const imageData = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
             try {
-                // Use RobustWatermark for compression-resistant invisible watermarking
-                const result = RobustWatermark.encode(imageData, invisibleData);
-                ctx.putImageData(result.imageData, 0, 0);
-                console.log(`Robust watermark embedded: ${result.bitsEmbedded} bits with redundancy`);
+                // Use RobustWatermark if loaded, otherwise fall back to LSB
+                if (typeof RobustWatermark !== 'undefined') {
+                    const result = RobustWatermark.encode(imageData, invisibleData);
+                    ctx.putImageData(result.imageData, 0, 0);
+                    console.log(`Robust watermark embedded: ${result.bitsEmbedded} bits with redundancy`);
+                } else {
+                    // RobustWatermark not loaded yet, use LSB
+                    console.log('RobustWatermark not loaded, using LSB steganography');
+                    const encodedData = Steganography.encode(imageData, invisibleData);
+                    ctx.putImageData(encodedData, 0, 0);
+                }
             } catch (error) {
-                console.warn('Robust watermark encoding failed, falling back to LSB:', error);
+                console.warn('Watermark encoding failed, falling back to LSB:', error);
                 // Fallback to basic steganography if robust fails
                 try {
                     const encodedData = Steganography.encode(imageData, invisibleData);
