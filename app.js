@@ -71,6 +71,7 @@ const App = (() => {
         elements.recordingTime = document.getElementById('recordingTime');
         elements.videoPreviewSection = document.getElementById('videoPreviewSection');
         elements.videoPreview = document.getElementById('videoPreview');
+        elements.videoPreviewContainer = document.querySelector('#videoPreviewSection .preview-container');
         elements.discardVideoBtn = document.getElementById('discardVideoBtn');
         elements.saveVideoBtn = document.getElementById('saveVideoBtn');
     }
@@ -677,6 +678,7 @@ const App = (() => {
         elements.cameraSection.classList.add('hidden');
         elements.videoPreviewSection.classList.remove('hidden');
         stopCamera();
+        updateVideoPreviewContainerSize();
     }
 
     // Update preview container size to match canvas dimensions
@@ -704,6 +706,40 @@ const App = (() => {
 
             if (idealHeight > availableHeight) {
                 container.style.width = `${availableHeight * canvasAspect}px`;
+                container.style.alignSelf = 'center';
+            }
+        }
+    }
+
+    // Update video preview container size to match video dimensions
+    function updateVideoPreviewContainerSize() {
+        const video = elements.videoPreview;
+        const container = elements.videoPreviewContainer;
+
+        if (!video || !container) return;
+
+        // Wait for video to have dimensions
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+            setTimeout(updateVideoPreviewContainerSize, 100);
+            return;
+        }
+
+        // Set the container's aspect ratio to match the video
+        container.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+        container.style.flex = 'none';
+        container.style.width = '100%';
+        container.style.maxHeight = 'calc(100vh - 200px)';
+
+        // If container is taller than viewport allows, constrain by height
+        const section = elements.videoPreviewSection;
+        if (section) {
+            const videoAspect = video.videoWidth / video.videoHeight;
+            const availableHeight = section.clientHeight - 150;
+            const containerWidth = container.clientWidth;
+            const idealHeight = containerWidth / videoAspect;
+
+            if (idealHeight > availableHeight) {
+                container.style.width = `${availableHeight * videoAspect}px`;
                 container.style.alignSelf = 'center';
             }
         }

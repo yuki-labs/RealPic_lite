@@ -437,7 +437,6 @@ body {
 .capture-btn-inner.recording {
     animation: recordingPulse 1s ease-in-out infinite;
     background: var(--color-danger) !important;
-    border-radius: 8px !important;
 }
 
 /* Capture Flash Effect */
