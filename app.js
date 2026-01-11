@@ -1,12 +1,19 @@
 /**
  * RealPic Lite - Main Application
  * Camera capture with visible and invisible watermarks.
+ * Supports both photo and video recording.
  */
 
 const App = (() => {
     // State
     let currentStream = null;
     let facingMode = 'environment'; // 'environment' = rear, 'user' = front
+    let currentMode = 'photo'; // 'photo' or 'video'
+    let isRecording = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordingStartTime = null;
+    let recordingTimerInterval = null;
 
     // User-configurable settings
     const settings = {
@@ -38,6 +45,7 @@ const App = (() => {
         elements.cameraSection = document.getElementById('cameraSection');
         elements.previewSection = document.getElementById('previewSection');
         elements.captureBtn = document.getElementById('captureBtn');
+        elements.captureBtnInner = document.getElementById('captureBtnInner');
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
         elements.settingsBtn = document.getElementById('settingsBtn');
         elements.discardBtn = document.getElementById('discardBtn');
@@ -51,16 +59,34 @@ const App = (() => {
         elements.cameraContainer = document.querySelector('.camera-container');
         elements.previewContainer = document.querySelector('.preview-container');
         elements.previewImage = document.getElementById('previewImage');
+
+        // Video-specific elements
+        elements.photoModeBtn = document.getElementById('photoModeBtn');
+        elements.videoModeBtn = document.getElementById('videoModeBtn');
+        elements.recordingIndicator = document.getElementById('recordingIndicator');
+        elements.recordingTime = document.getElementById('recordingTime');
+        elements.videoPreviewSection = document.getElementById('videoPreviewSection');
+        elements.videoPreview = document.getElementById('videoPreview');
+        elements.discardVideoBtn = document.getElementById('discardVideoBtn');
+        elements.saveVideoBtn = document.getElementById('saveVideoBtn');
     }
 
     function bindEvents() {
-        elements.captureBtn.addEventListener('click', capturePhoto);
+        elements.captureBtn.addEventListener('click', handleCapture);
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
         elements.discardBtn.addEventListener('click', discardPhoto);
         elements.saveBtn.addEventListener('click', downloadPhoto);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
+
+        // Mode toggle
+        elements.photoModeBtn.addEventListener('click', () => setMode('photo'));
+        elements.videoModeBtn.addEventListener('click', () => setMode('video'));
+
+        // Video controls
+        elements.discardVideoBtn.addEventListener('click', discardVideo);
+        elements.saveVideoBtn.addEventListener('click', downloadVideo);
 
         // Close modal on overlay click
         elements.settingsModal.addEventListener('click', (e) => {
@@ -77,9 +103,42 @@ const App = (() => {
             }
             if (e.code === 'Space' && !elements.cameraSection.classList.contains('hidden')) {
                 e.preventDefault();
-                capturePhoto();
+                handleCapture();
             }
         });
+    }
+
+    // Mode Functions
+    function setMode(mode) {
+        currentMode = mode;
+
+        // Update button states
+        elements.photoModeBtn.classList.toggle('active', mode === 'photo');
+        elements.videoModeBtn.classList.toggle('active', mode === 'video');
+
+        // Update capture button appearance
+        elements.captureBtn.classList.toggle('video-mode', mode === 'video');
+
+        // Update capture button inner for video mode (red dot)
+        if (mode === 'video') {
+            elements.captureBtnInner.style.background = '#ef4444';
+            elements.captureBtnInner.style.borderRadius = '8px';
+        } else {
+            elements.captureBtnInner.style.background = '';
+            elements.captureBtnInner.style.borderRadius = '50%';
+        }
+    }
+
+    function handleCapture() {
+        if (currentMode === 'photo') {
+            capturePhoto();
+        } else {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
     }
 
     // Settings Functions
@@ -139,7 +198,7 @@ const App = (() => {
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
-                audio: false
+                audio: true // Enable audio for video recording
             };
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -186,12 +245,12 @@ const App = (() => {
         container.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
         container.style.flex = 'none';
         container.style.width = '100%';
-        container.style.maxHeight = 'calc(100vh - 200px)';
+        container.style.maxHeight = 'calc(100vh - 250px)';
 
         // If container is taller than viewport allows, constrain by height
         const section = elements.cameraSection;
         if (section) {
-            const availableHeight = section.clientHeight - 150; // Leave room for controls
+            const availableHeight = section.clientHeight - 200;
             const containerWidth = container.clientWidth;
             const idealHeight = containerWidth / videoAspect;
 
@@ -203,6 +262,11 @@ const App = (() => {
     }
 
     async function switchCamera() {
+        if (isRecording) {
+            showToast('Cannot switch camera while recording', 'error');
+            return;
+        }
+
         updateCameraStatus('Switching camera...');
 
         // Toggle between front and rear
@@ -217,7 +281,7 @@ const App = (() => {
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
-                audio: false
+                audio: true
             };
 
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -240,7 +304,7 @@ const App = (() => {
         } catch (error) {
             console.error('Error switching camera:', error);
 
-            // Revert facingMode and try with non-exact constraint
+            // Revert facingMode
             facingMode = facingMode === 'environment' ? 'user' : 'environment';
 
             if (oldStream && !currentStream) {
@@ -260,7 +324,113 @@ const App = (() => {
         elements.cameraFeed.srcObject = null;
     }
 
-    // Capture Functions
+    // Video Recording Functions
+    function startRecording() {
+        if (!currentStream) {
+            showToast('Camera not ready', 'error');
+            return;
+        }
+
+        try {
+            // Determine supported mime type
+            const mimeTypes = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm',
+                'video/mp4'
+            ];
+
+            let selectedMimeType = '';
+            for (const mimeType of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(mimeType)) {
+                    selectedMimeType = mimeType;
+                    break;
+                }
+            }
+
+            if (!selectedMimeType) {
+                showToast('Video recording not supported on this browser', 'error');
+                return;
+            }
+
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(currentStream, { mimeType: selectedMimeType });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                processRecordedVideo();
+            };
+
+            mediaRecorder.onerror = (error) => {
+                console.error('MediaRecorder error:', error);
+                stopRecording();
+                showToast('Recording error occurred', 'error');
+            };
+
+            mediaRecorder.start(100); // Collect data every 100ms
+            isRecording = true;
+            recordingStartTime = Date.now();
+
+            // Update UI
+            elements.recordingIndicator.classList.remove('hidden');
+            elements.captureBtnInner.classList.add('recording');
+            updateRecordingTime();
+            recordingTimerInterval = setInterval(updateRecordingTime, 1000);
+
+            showToast('Recording started', 'success');
+
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            showToast('Could not start recording', 'error');
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+
+            // Update UI
+            elements.recordingIndicator.classList.add('hidden');
+            elements.captureBtnInner.classList.remove('recording');
+
+            if (recordingTimerInterval) {
+                clearInterval(recordingTimerInterval);
+                recordingTimerInterval = null;
+            }
+        }
+    }
+
+    function updateRecordingTime() {
+        if (!recordingStartTime) return;
+
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const seconds = (elapsed % 60).toString().padStart(2, '0');
+        elements.recordingTime.textContent = `${minutes}:${seconds}`;
+    }
+
+    function processRecordedVideo() {
+        if (recordedChunks.length === 0) {
+            showToast('No video data recorded', 'error');
+            return;
+        }
+
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+
+        elements.videoPreview.src = url;
+        elements.videoPreview.dataset.blobUrl = url;
+
+        showVideoPreview();
+    }
+
+    // Photo Capture Functions
     function capturePhoto() {
         const video = elements.cameraFeed;
         const canvas = elements.captureCanvas;
@@ -312,7 +482,7 @@ const App = (() => {
             }
         }
 
-        showPreview();
+        showPhotoPreview();
     }
 
     function buildInvisibleData() {
@@ -334,7 +504,7 @@ const App = (() => {
     }
 
     // View Functions
-    function showPreview() {
+    function showPhotoPreview() {
         elements.cameraSection.classList.add('hidden');
         elements.previewSection.classList.remove('hidden');
         stopCamera();
@@ -344,6 +514,12 @@ const App = (() => {
         elements.previewImage.src = dataUrl;
 
         updatePreviewContainerSize();
+    }
+
+    function showVideoPreview() {
+        elements.cameraSection.classList.add('hidden');
+        elements.videoPreviewSection.classList.remove('hidden');
+        stopCamera();
     }
 
     // Update preview container size to match canvas dimensions
@@ -378,6 +554,7 @@ const App = (() => {
 
     function showCamera() {
         elements.previewSection.classList.add('hidden');
+        elements.videoPreviewSection.classList.add('hidden');
         elements.cameraSection.classList.remove('hidden');
         initCamera();
     }
@@ -386,7 +563,17 @@ const App = (() => {
         showCamera();
     }
 
-    // Download Function
+    function discardVideo() {
+        // Clean up blob URL
+        if (elements.videoPreview.dataset.blobUrl) {
+            URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
+        }
+        elements.videoPreview.src = '';
+        recordedChunks = [];
+        showCamera();
+    }
+
+    // Download Functions
     function downloadPhoto() {
         const dataUrl = elements.previewCanvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -395,6 +582,24 @@ const App = (() => {
         link.click();
         showToast('Photo downloaded!', 'success');
         showCamera();
+    }
+
+    function downloadVideo() {
+        if (recordedChunks.length === 0) {
+            showToast('No video to download', 'error');
+            return;
+        }
+
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `realpic_${Date.now()}.webm`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showToast('Video downloaded!', 'success');
+        discardVideo();
     }
 
     // Toast Notifications

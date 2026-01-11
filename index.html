@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="RealPic Lite - Capture photos with visible and invisible watermarks for authenticity verification">
-    <title>RealPic Lite - Watermarked Photo Capture</title>
+        content="RealPic Lite - Capture photos and videos with visible and invisible watermarks for authenticity verification">
+    <title>RealPic Lite - Watermarked Photo & Video Capture</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
             <!-- Camera View -->
             <section class="camera-section" id="cameraSection">
                 <div class="camera-container">
-                    <video id="cameraFeed" autoplay playsinline></video>
+                    <video id="cameraFeed" autoplay playsinline muted></video>
                     <canvas id="captureCanvas" class="hidden"></canvas>
 
                     <!-- Camera status -->
@@ -40,6 +40,30 @@
                         <div class="status-dot"></div>
                         <span>Initializing camera...</span>
                     </div>
+
+                    <!-- Recording indicator -->
+                    <div class="recording-indicator hidden" id="recordingIndicator">
+                        <div class="recording-dot"></div>
+                        <span id="recordingTime">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="photoModeBtn" data-mode="photo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <span>Photo</span>
+                    </button>
+                    <button class="mode-btn" id="videoModeBtn" data-mode="video">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        </svg>
+                        <span>Video</span>
+                    </button>
                 </div>
 
                 <!-- Camera Controls -->
@@ -54,8 +78,8 @@
                             <path d="M21 13v2a4 4 0 01-4 4H3" />
                         </svg>
                     </button>
-                    <button class="capture-btn" id="captureBtn" aria-label="Take photo">
-                        <div class="capture-btn-inner"></div>
+                    <button class="capture-btn" id="captureBtn" aria-label="Capture">
+                        <div class="capture-btn-inner" id="captureBtnInner"></div>
                     </button>
                     <button class="control-btn secondary" id="settingsBtn" aria-label="Settings" title="Settings">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -68,12 +92,10 @@
                 </div>
             </section>
 
-            <!-- Preview Section (hidden by default) -->
+            <!-- Photo Preview Section (hidden by default) -->
             <section class="preview-section hidden" id="previewSection">
                 <div class="preview-container">
-                    <!-- Hidden canvas for watermark processing -->
                     <canvas id="previewCanvas" class="hidden"></canvas>
-                    <!-- Visible image for display (enables native context menu) -->
                     <img id="previewImage" alt="Watermarked photo - long press to save">
                     <div class="watermark-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -84,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- Preview Controls -->
                 <div class="preview-controls">
                     <button class="control-btn danger" id="discardBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,6 +115,38 @@
                         <span>Discard</span>
                     </button>
                     <button class="control-btn primary" id="saveBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7,10 12,15 17,10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <span>Download</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Video Preview Section (hidden by default) -->
+            <section class="preview-section hidden" id="videoPreviewSection">
+                <div class="preview-container">
+                    <video id="videoPreview" controls playsinline></video>
+                    <div class="watermark-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                        </svg>
+                        <span>Watermarked</span>
+                    </div>
+                </div>
+
+                <div class="preview-controls">
+                    <button class="control-btn danger" id="discardVideoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        <span>Discard</span>
+                    </button>
+                    <button class="control-btn primary" id="saveVideoBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                             <polyline points="7,10 12,15 17,10" />

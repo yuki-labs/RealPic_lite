@@ -161,7 +161,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: var(--spacing-lg);
-    gap: var(--spacing-xl);
+    gap: var(--spacing-md);
 }
 
 .camera-container {
@@ -235,6 +235,86 @@ body {
 
     50% {
         opacity: 0.4;
+    }
+}
+
+/* Mode Toggle */
+.mode-toggle {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    color: var(--color-text-tertiary);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mode-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mode-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-secondary);
+}
+
+.mode-btn.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+/* Recording Indicator */
+.recording-indicator {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(239, 68, 68, 0.9);
+    border-radius: var(--radius-full);
+    color: white;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    z-index: 20;
+    animation: fadeIn var(--transition-fast);
+}
+
+.recording-dot {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: recordingPulse 1s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
     }
 }
 
@@ -326,6 +406,14 @@ body {
     transform: scale(0.95);
 }
 
+.capture-btn.video-mode {
+    border-color: var(--color-danger);
+}
+
+.capture-btn.video-mode:hover {
+    border-color: var(--color-danger);
+}
+
 .capture-btn-inner {
     width: 100%;
     height: 100%;
@@ -338,8 +426,18 @@ body {
     background: var(--color-accent);
 }
 
+.capture-btn.video-mode:hover .capture-btn-inner {
+    background: var(--color-danger);
+}
+
 .capture-btn:active .capture-btn-inner {
     transform: scale(0.9);
+}
+
+.capture-btn-inner.recording {
+    animation: recordingPulse 1s ease-in-out infinite;
+    background: var(--color-danger) !important;
+    border-radius: 8px !important;
 }
 
 /* Capture Flash Effect */
@@ -396,10 +494,17 @@ body {
     max-height: 100%;
     object-fit: contain;
     display: block;
-    /* Enable native context menu on long press */
     -webkit-touch-callout: default;
     -webkit-user-select: auto;
     user-select: auto;
+}
+
+#videoPreview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    border-radius: var(--radius-md);
 }
 
 .watermark-badge {
@@ -813,5 +918,19 @@ body {
     .modal {
         max-height: 95vh;
         margin: var(--spacing-sm);
+    }
+
+    .mode-toggle {
+        padding: var(--spacing-xs) 0;
+    }
+
+    .mode-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+
+    .mode-btn svg {
+        width: 16px;
+        height: 16px;
     }
 }
