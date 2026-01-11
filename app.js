@@ -56,6 +56,7 @@ const App = (() => {
         elements.toastContainer = document.getElementById('toastContainer');
         elements.cameraContainer = document.querySelector('.camera-container');
         elements.previewContainer = document.querySelector('.preview-container');
+        elements.previewImage = document.getElementById('previewImage');
     }
 
     function bindEvents() {
@@ -393,6 +394,11 @@ const App = (() => {
         elements.cameraSection.classList.add('hidden');
         elements.previewSection.classList.remove('hidden');
         stopCamera();
+
+        // Convert canvas to image for native context menu support
+        const dataUrl = elements.previewCanvas.toDataURL('image/png');
+        elements.previewImage.src = dataUrl;
+
         updatePreviewContainerSize();
     }
 
@@ -447,7 +453,7 @@ const App = (() => {
         showCamera();
     }
 
-    // Copy to Clipboard Function (with Share fallback for mobile)
+    // Share/Copy Function (with multiple fallbacks)
     async function copyPhoto() {
         const canvas = elements.previewCanvas;
 
@@ -466,7 +472,7 @@ const App = (() => {
             return;
         }
 
-        // Try Clipboard API first (works on desktop browsers)
+        // Try Clipboard API first (works on desktop Chrome, Edge, Safari)
         if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
             try {
                 await navigator.clipboard.write([
@@ -479,7 +485,7 @@ const App = (() => {
             }
         }
 
-        // Fallback: Try Web Share API (works on mobile)
+        // Try Web Share API (works on mobile Chrome, Safari)
         if (navigator.share && navigator.canShare) {
             try {
                 const file = new File([blob], `realpic_${Date.now()}.png`, { type: 'image/png' });
@@ -491,16 +497,22 @@ const App = (() => {
                     return;
                 }
             } catch (shareError) {
-                // User cancelled share or share failed
-                if (shareError.name !== 'AbortError') {
-                    console.log('Web Share API failed:', shareError);
+                // User cancelled share - don't show error
+                if (shareError.name === 'AbortError') {
+                    return;
                 }
-                return;
+                console.log('Web Share API failed:', shareError);
             }
         }
 
-        // Neither worked
-        showToast('Copy not supported. Use Download instead.', 'error');
+        // Final fallback: Auto-download (works everywhere including Firefox)
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `realpic_${Date.now()}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast('Image downloaded!', 'success');
     }
 
     // Toast Notifications
