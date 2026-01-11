@@ -8,7 +8,7 @@ const App = (() => {
     // State
     let currentStream = null;
     let currentVideoDeviceId = null; // Track specific camera device
-    let facingMode = 'environment'; // 'environment' = rear, 'user' = front
+    let facingMode = 'user'; // 'environment' = rear, 'user' = front
     let currentMode = 'photo'; // 'photo' or 'video'
     let isRecording = false;
     let mediaRecorder = null;
