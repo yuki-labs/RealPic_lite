@@ -1,7 +1,7 @@
 /**
  * RealPic Lite - Main Application
  * Camera capture with visible and invisible watermarks.
- * Supports both photo and video recording.
+ * Supports both photo and video recording with watermarks.
  */
 
 const App = (() => {
@@ -12,8 +12,10 @@ const App = (() => {
     let isRecording = false;
     let mediaRecorder = null;
     let recordedChunks = [];
+    let recordedMimeType = 'video/webm';
     let recordingStartTime = null;
     let recordingTimerInterval = null;
+    let videoRenderInterval = null;
 
     // User-configurable settings
     const settings = {
@@ -41,6 +43,7 @@ const App = (() => {
         elements.cameraFeed = document.getElementById('cameraFeed');
         elements.captureCanvas = document.getElementById('captureCanvas');
         elements.previewCanvas = document.getElementById('previewCanvas');
+        elements.videoRecordCanvas = document.getElementById('videoRecordCanvas');
         elements.cameraStatus = document.getElementById('cameraStatus');
         elements.cameraSection = document.getElementById('cameraSection');
         elements.previewSection = document.getElementById('previewSection');
@@ -119,13 +122,11 @@ const App = (() => {
         // Update capture button appearance
         elements.captureBtn.classList.toggle('video-mode', mode === 'video');
 
-        // Update capture button inner for video mode (red square)
+        // Update capture button inner color for video mode (red circle)
         if (mode === 'video') {
             elements.captureBtnInner.style.background = '#ef4444';
-            elements.captureBtnInner.style.borderRadius = '8px';
         } else {
             elements.captureBtnInner.style.background = '';
-            elements.captureBtnInner.style.borderRadius = '50%';
         }
     }
 
@@ -192,31 +193,14 @@ const App = (() => {
         try {
             updateCameraStatus('Initializing camera...');
 
-            // Try to get camera with audio first, fall back to video-only
-            let stream = null;
-
-            // First attempt: video + audio
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: facingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: true
-                });
-            } catch (audioError) {
-                console.log('Could not get audio, trying video only:', audioError);
-                // Fallback: video only (Firefox sometimes has issues with audio + video together)
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: facingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                });
-            }
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: facingMode,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: true
+            });
 
             currentStream = stream;
             elements.cameraFeed.srcObject = currentStream;
@@ -305,14 +289,14 @@ const App = (() => {
                     audio: true
                 });
             } catch (exactError) {
-                // Fallback without exact and without audio
+                // Fallback without exact constraint
                 newStream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: newFacingMode,
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     },
-                    audio: false
+                    audio: true
                 });
             }
 
@@ -360,11 +344,42 @@ const App = (() => {
         }
 
         try {
-            // Check if we have audio
-            const hasAudio = currentStream.getAudioTracks().length > 0;
-            if (!hasAudio) {
-                console.log('Recording without audio - no audio track available');
+            const video = elements.cameraFeed;
+            const canvas = elements.videoRecordCanvas;
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Start rendering video frames with watermark to canvas
+            function renderFrame() {
+                if (!isRecording) return;
+
+                // Draw video frame
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Apply watermark
+                Watermark.applyVisible(ctx, canvas.width, canvas.height, {
+                    text: settings.visibleText,
+                    position: settings.position,
+                    opacity: settings.opacity,
+                    size: settings.size,
+                    showDateTime: settings.showDateTime,
+                    customText: settings.customText
+                });
+
+                videoRenderInterval = requestAnimationFrame(renderFrame);
             }
+
+            // Get canvas stream at 30 FPS
+            const canvasStream = canvas.captureStream(30);
+
+            // Add audio tracks from original stream
+            const audioTracks = currentStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                canvasStream.addTrack(track);
+            });
 
             // Determine supported mime type
             const mimeTypes = [
@@ -390,7 +405,8 @@ const App = (() => {
             }
 
             recordedChunks = [];
-            mediaRecorder = new MediaRecorder(currentStream, { mimeType: selectedMimeType });
+            recordedMimeType = selectedMimeType;
+            mediaRecorder = new MediaRecorder(canvasStream, { mimeType: selectedMimeType });
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
@@ -408,8 +424,10 @@ const App = (() => {
                 showToast('Recording error occurred', 'error');
             };
 
-            mediaRecorder.start(100); // Collect data every 100ms
+            // Start recording
             isRecording = true;
+            renderFrame(); // Start rendering watermarked frames
+            mediaRecorder.start(100); // Collect data every 100ms
             recordingStartTime = Date.now();
 
             // Update UI
@@ -428,8 +446,15 @@ const App = (() => {
 
     function stopRecording() {
         if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
             isRecording = false;
+
+            // Stop the animation frame
+            if (videoRenderInterval) {
+                cancelAnimationFrame(videoRenderInterval);
+                videoRenderInterval = null;
+            }
+
+            mediaRecorder.stop();
 
             // Update UI
             elements.recordingIndicator.classList.add('hidden');
@@ -457,13 +482,27 @@ const App = (() => {
             return;
         }
 
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        // Use the same mime type that was used for recording
+        const blob = new Blob(recordedChunks, { type: recordedMimeType });
         const url = URL.createObjectURL(blob);
 
+        // Set up the video element
         elements.videoPreview.src = url;
         elements.videoPreview.dataset.blobUrl = url;
 
-        showVideoPreview();
+        // Wait for video to be loadable before showing preview
+        elements.videoPreview.onloadedmetadata = () => {
+            showVideoPreview();
+        };
+
+        elements.videoPreview.onerror = (e) => {
+            console.error('Video preview error:', e);
+            showToast('Could not load video preview', 'error');
+            showCamera();
+        };
+
+        // Load the video
+        elements.videoPreview.load();
     }
 
     // Photo Capture Functions
@@ -626,7 +665,7 @@ const App = (() => {
             return;
         }
 
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const blob = new Blob(recordedChunks, { type: recordedMimeType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = `realpic_${Date.now()}.webm`;
