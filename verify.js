@@ -1,6 +1,6 @@
 /**
  * Verify Page JavaScript
- * Handles watermark verification and sharing functionality
+ * Handles watermark verification with auto-upload for shareable links
  */
 
 (function () {
@@ -22,15 +22,14 @@
     const confidenceValue = document.getElementById('confidenceValue');
     const embeddedMessage = document.getElementById('embeddedMessage');
     const verifyAnotherBtn = document.getElementById('verifyAnotherBtn');
-    const createShareLink = document.getElementById('createShareLink');
+    const shareSection = document.getElementById('shareSection');
     const shareResult = document.getElementById('shareResult');
     const shareUrl = document.getElementById('shareUrl');
     const copyShareUrl = document.getElementById('copyShareUrl');
     const shareNote = document.getElementById('shareNote');
 
-    // Track current blob URL and file for cleanup/sharing
+    // Track current state
     let currentBlobUrl = null;
-    let currentFile = null;
 
     // Initialize event listeners
     function init() {
@@ -110,11 +109,8 @@
             fileInput.value = '';
             shareResult.classList.add('hidden');
             shareNote.textContent = '';
-            createShareLink.disabled = false;
+            if (shareSection) shareSection.style.display = 'none';
         });
-
-        // Share link button
-        createShareLink.addEventListener('click', uploadImage);
 
         // Copy share URL button
         copyShareUrl.addEventListener('click', () => {
@@ -130,26 +126,87 @@
         });
     }
 
-    // Process uploaded/pasted image
-    function processImage(file) {
+    // Process uploaded/pasted image - uploads immediately for shareable URL
+    async function processImage(file) {
         dropZone.style.display = 'none';
         loadingSpinner.classList.add('active');
         previewArea.classList.remove('active');
+        if (shareSection) shareSection.style.display = 'none';
 
         // Clean up previous blob URL
         if (currentBlobUrl) {
             URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
         }
 
-        // Store file for sharing
-        currentFile = file;
+        try {
+            // Upload image to server first (for shareable URL)
+            const formData = new FormData();
+            formData.append('image', file);
 
-        // Create blob URL
-        currentBlobUrl = URL.createObjectURL(file);
+            const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
 
+            const uploadData = await uploadResponse.json();
+
+            if (!uploadData.success) {
+                throw new Error(uploadData.error || 'Upload failed');
+            }
+
+            // Use the uploaded URL for the preview (so context menu gives shareable link)
+            const shareableUrl = uploadData.data.fullUrl;
+            const localUrl = uploadData.data.url;
+
+            // Load image from server URL
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+                // Set preview to the shareable URL (context menu will copy this)
+                imagePreview.src = shareableUrl;
+
+                // Create canvas for watermark verification
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Show share section with the URL
+                if (shareSection) shareSection.style.display = 'block';
+                shareUrl.value = shareableUrl;
+                shareResult.classList.remove('hidden');
+                shareNote.textContent = 'Right-click the image → Copy Image Address to share';
+                shareNote.className = 'share-note success';
+
+                // Verify watermarks
+                verifyWatermarks(imageData);
+            };
+
+            img.onerror = () => {
+                // Fallback to blob URL if server URL fails to load
+                currentBlobUrl = URL.createObjectURL(file);
+                loadImageFromBlob(file, currentBlobUrl);
+            };
+
+            img.src = localUrl;
+
+        } catch (err) {
+            console.error('Upload failed, using local preview:', err);
+            // Fallback to blob URL
+            currentBlobUrl = URL.createObjectURL(file);
+            loadImageFromBlob(file, currentBlobUrl);
+        }
+    }
+
+    // Fallback: load image from blob URL
+    function loadImageFromBlob(file, blobUrl) {
         const img = new Image();
         img.onload = () => {
-            imagePreview.src = currentBlobUrl;
+            imagePreview.src = blobUrl;
 
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
@@ -158,67 +215,15 @@
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            setTimeout(() => {
-                verifyWatermarks(imageData);
-            }, 500);
+            // Hide share section on fallback
+            if (shareSection) shareSection.style.display = 'block';
+            shareNote.textContent = 'Upload failed - image not shareable';
+            shareNote.className = 'share-note error';
+            shareResult.classList.add('hidden');
+
+            verifyWatermarks(imageData);
         };
-        img.src = currentBlobUrl;
-
-        // Reset share section
-        shareResult.classList.add('hidden');
-        shareNote.textContent = '';
-        createShareLink.disabled = false;
-    }
-
-    // Upload to local server for shareable link
-    async function uploadImage() {
-        if (!currentFile) {
-            shareNote.textContent = 'No image to share';
-            shareNote.className = 'share-note error';
-            return;
-        }
-
-        createShareLink.disabled = true;
-        shareNote.textContent = 'Uploading...';
-        shareNote.className = 'share-note';
-
-        try {
-            // Create form data for upload
-            const formData = new FormData();
-            formData.append('image', currentFile);
-
-            // Upload to our own server
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                shareUrl.value = data.data.fullUrl;
-                shareResult.classList.remove('hidden');
-                shareNote.textContent = 'Shareable link created! Anyone can view this image.';
-                shareNote.className = 'share-note success';
-            } else {
-                throw new Error(data.error || 'Upload failed');
-            }
-        } catch (err) {
-            console.error('Upload failed:', err);
-            shareNote.textContent = 'Upload failed. Try again later.';
-            shareNote.className = 'share-note error';
-            createShareLink.disabled = false;
-        }
-    }
-
-    // Convert file to base64
-    function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+        img.src = blobUrl;
     }
 
     // Verify watermarks in image
