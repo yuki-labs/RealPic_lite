@@ -690,16 +690,40 @@ const App = (() => {
     }
 
     // View Functions
-    function showPhotoPreview() {
+    async function showPhotoPreview() {
         elements.cameraSection.classList.add('hidden');
         elements.previewSection.classList.remove('hidden');
         stopCamera();
 
-        // Convert canvas to image for native context menu support
-        const dataUrl = elements.previewCanvas.toDataURL('image/png');
-        elements.previewImage.src = dataUrl;
+        // Convert canvas to blob for upload
+        const canvas = elements.previewCanvas;
 
+        // First show the data URL while uploading (for instant feedback)
+        const dataUrl = canvas.toDataURL('image/png');
+        elements.previewImage.src = dataUrl;
         updatePreviewContainerSize();
+
+        // Upload in background for shareable URL
+        try {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const formData = new FormData();
+            formData.append('image', blob, 'photo.png');
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Replace preview src with uploaded URL (enables shareable context menu)
+                elements.previewImage.src = data.data.fullUrl;
+                console.log('Photo uploaded for sharing:', data.data.fullUrl);
+            }
+        } catch (err) {
+            console.warn('Auto-upload failed, using local preview:', err);
+            // Keep using the data URL - photo is still viewable
+        }
     }
 
     function showVideoPreview() {
