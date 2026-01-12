@@ -1,6 +1,6 @@
 /**
  * Verify Page JavaScript
- * Handles watermark verification functionality
+ * Handles watermark verification and sharing functionality
  */
 
 (function () {
@@ -22,6 +22,15 @@
     const confidenceValue = document.getElementById('confidenceValue');
     const embeddedMessage = document.getElementById('embeddedMessage');
     const verifyAnotherBtn = document.getElementById('verifyAnotherBtn');
+    const createShareLink = document.getElementById('createShareLink');
+    const shareResult = document.getElementById('shareResult');
+    const shareUrl = document.getElementById('shareUrl');
+    const copyShareUrl = document.getElementById('copyShareUrl');
+    const shareNote = document.getElementById('shareNote');
+
+    // Track current blob URL and file for cleanup/sharing
+    let currentBlobUrl = null;
+    let currentFile = null;
 
     // Initialize event listeners
     function init() {
@@ -66,7 +75,7 @@
             }
         });
 
-        // Paste button for mobile (uses Clipboard API)
+        // Paste button for mobile
         pasteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
             try {
@@ -99,11 +108,27 @@
             previewArea.classList.remove('active');
             dropZone.style.display = 'block';
             fileInput.value = '';
+            shareResult.classList.add('hidden');
+            shareNote.textContent = '';
+            createShareLink.disabled = false;
+        });
+
+        // Share link button
+        createShareLink.addEventListener('click', uploadToImgur);
+
+        // Copy share URL button
+        copyShareUrl.addEventListener('click', () => {
+            shareUrl.select();
+            navigator.clipboard.writeText(shareUrl.value).then(() => {
+                shareNote.textContent = 'Link copied to clipboard!';
+                shareNote.className = 'share-note success';
+            }).catch(() => {
+                document.execCommand('copy');
+                shareNote.textContent = 'Link copied!';
+                shareNote.className = 'share-note success';
+            });
         });
     }
-
-    // Track current blob URL for cleanup
-    let currentBlobUrl = null;
 
     // Process uploaded/pasted image
     function processImage(file) {
@@ -116,7 +141,10 @@
             URL.revokeObjectURL(currentBlobUrl);
         }
 
-        // Create blob URL (short URL, won't crash Firefox on share/copy)
+        // Store file for sharing
+        currentFile = file;
+
+        // Create blob URL
         currentBlobUrl = URL.createObjectURL(file);
 
         const img = new Image();
@@ -135,6 +163,69 @@
             }, 500);
         };
         img.src = currentBlobUrl;
+
+        // Reset share section
+        shareResult.classList.add('hidden');
+        shareNote.textContent = '';
+        createShareLink.disabled = false;
+    }
+
+    // Upload to Imgur for shareable link
+    async function uploadToImgur() {
+        if (!currentFile) {
+            shareNote.textContent = 'No image to share';
+            shareNote.className = 'share-note error';
+            return;
+        }
+
+        createShareLink.disabled = true;
+        shareNote.textContent = 'Uploading...';
+        shareNote.className = 'share-note';
+
+        try {
+            // Convert file to base64
+            const base64 = await fileToBase64(currentFile);
+
+            // Upload to Imgur (anonymous upload)
+            const response = await fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Client-ID 546c25a59c58ad7', // Anonymous Imgur client ID
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: base64.split(',')[1], // Remove data:image/... prefix
+                    type: 'base64'
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const imgurUrl = data.data.link;
+                shareUrl.value = imgurUrl;
+                shareResult.classList.remove('hidden');
+                shareNote.textContent = 'Shareable link created! Anyone can view this image.';
+                shareNote.className = 'share-note success';
+            } else {
+                throw new Error(data.data?.error || 'Upload failed');
+            }
+        } catch (err) {
+            console.error('Imgur upload failed:', err);
+            shareNote.textContent = 'Upload failed. Try again later.';
+            shareNote.className = 'share-note error';
+            createShareLink.disabled = false;
+        }
+    }
+
+    // Convert file to base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
     // Verify watermarks in image
@@ -146,7 +237,6 @@
         let robustResult = null;
         let lsbResult = null;
 
-        // Try robust watermark first
         try {
             if (typeof RobustWatermark !== 'undefined') {
                 robustResult = RobustWatermark.decode(imageData);
@@ -155,14 +245,12 @@
             console.warn('Robust decode error:', e);
         }
 
-        // Try LSB steganography
         try {
             lsbResult = Steganography.decode(imageData);
         } catch (e) {
             console.warn('LSB decode error:', e);
         }
 
-        // Determine result
         if (robustResult && robustResult.found && robustResult.confidence > 0.6) {
             showResult('success',
                 'Authentic RealPic Watermark',

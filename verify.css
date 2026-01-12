@@ -86,11 +86,6 @@
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    vertical-align: middle;
-}
-
-.paste-btn span {
-    vertical-align: middle;
 }
 
 /* Preview Area */
@@ -308,4 +303,107 @@
 
 .hidden-input {
     display: none;
+}
+
+/* Share Section */
+.share-section {
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--color-border);
+    text-align: center;
+}
+
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.share-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.share-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.share-result {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.share-result.hidden {
+    display: none;
+}
+
+.share-result input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 0.875rem;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    background: var(--color-accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    opacity: 0.9;
+}
+
+.copy-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.share-note {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.share-note.success {
+    color: #22c55e;
+}
+
+.share-note.error {
+    color: #ef4444;
+}
+
+.hidden {
+    display: none !important;
 }
