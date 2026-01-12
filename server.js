@@ -7,21 +7,64 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Directory for uploaded images (Railway Volume should be mounted here)
+// Configuration
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+const MAX_IMAGES = 5; // Maximum number of images to keep
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
+// Get all uploaded files sorted by creation time (oldest first)
+function getUploadedFiles() {
+    try {
+        const files = fs.readdirSync(UPLOADS_DIR)
+            .filter(file => {
+                const ext = path.extname(file).toLowerCase();
+                return ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext);
+            })
+            .map(file => {
+                const filepath = path.join(UPLOADS_DIR, file);
+                const stats = fs.statSync(filepath);
+                return {
+                    name: file,
+                    path: filepath,
+                    created: stats.birthtime.getTime()
+                };
+            })
+            .sort((a, b) => a.created - b.created); // Oldest first
+        return files;
+    } catch (err) {
+        console.error('Error reading uploads directory:', err);
+        return [];
+    }
+}
+
+// Delete oldest files to maintain MAX_IMAGES limit
+function enforceImageLimit() {
+    const files = getUploadedFiles();
+
+    // Delete oldest files until we're at MAX_IMAGES - 1 (to make room for new upload)
+    while (files.length >= MAX_IMAGES) {
+        const oldest = files.shift();
+        try {
+            fs.unlinkSync(oldest.path);
+            console.log(`Deleted oldest image: ${oldest.name}`);
+        } catch (err) {
+            console.error(`Failed to delete ${oldest.name}:`, err);
+        }
+    }
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
+        // Enforce limit before saving new file
+        enforceImageLimit();
         cb(null, UPLOADS_DIR);
     },
     filename: (req, file, cb) => {
-        // Generate unique filename
         const uniqueId = crypto.randomBytes(8).toString('hex');
         const ext = path.extname(file.originalname) || '.png';
         cb(null, `${uniqueId}${ext}`);
@@ -34,7 +77,6 @@ const upload = multer({
         fileSize: 10 * 1024 * 1024 // 10MB limit
     },
     fileFilter: (req, file, cb) => {
-        // Only allow images
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
         } else {
@@ -58,13 +100,34 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     const imageUrl = `/uploads/${req.file.filename}`;
     const fullUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
 
+    // Get current count for info
+    const currentCount = getUploadedFiles().length;
+
     res.json({
         success: true,
         data: {
             filename: req.file.filename,
             url: imageUrl,
             fullUrl: fullUrl,
-            size: req.file.size
+            size: req.file.size,
+            imagesStored: currentCount
+        }
+    });
+});
+
+// API: Get all stored images
+app.get('/api/images', (req, res) => {
+    const files = getUploadedFiles();
+    res.json({
+        success: true,
+        data: {
+            count: files.length,
+            maxImages: MAX_IMAGES,
+            images: files.map(f => ({
+                filename: f.name,
+                url: `/uploads/${f.name}`,
+                created: new Date(f.created).toISOString()
+            }))
         }
     });
 });
@@ -88,7 +151,7 @@ app.get('/api/image/:filename', (req, res) => {
     });
 });
 
-// API: Delete image (optional, for cleanup)
+// API: Delete image
 app.delete('/api/image/:filename', (req, res) => {
     const filepath = path.join(UPLOADS_DIR, req.params.filename);
 
@@ -110,4 +173,9 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`RealPic Lite server running on port ${PORT}`);
     console.log(`Uploads directory: ${UPLOADS_DIR}`);
+    console.log(`Max images: ${MAX_IMAGES}`);
+
+    // Log current image count on startup
+    const files = getUploadedFiles();
+    console.log(`Current images stored: ${files.length}`);
 });
