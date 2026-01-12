@@ -6,9 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Verify RealPic watermarks - Check if an image has an authentic RealPic watermark">
     <title>RealPic Lite - Watermark Verifier</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
         .verify-container {
@@ -29,31 +26,31 @@
         }
 
         .verify-header p {
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-size: 0.95rem;
         }
 
         .drop-zone {
-            border: 2px dashed var(--border-color);
+            border: 2px dashed var(--color-border);
             border-radius: 16px;
             padding: 3rem 2rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: var(--surface);
+            background: var(--color-surface);
             margin-bottom: 2rem;
         }
 
         .drop-zone:hover,
         .drop-zone.dragover {
-            border-color: var(--primary);
+            border-color: var(--color-accent);
             background: rgba(99, 102, 241, 0.05);
         }
 
         .drop-zone svg {
             width: 48px;
             height: 48px;
-            stroke: var(--text-secondary);
+            stroke: var(--color-text-secondary);
             margin-bottom: 1rem;
         }
 
@@ -63,8 +60,35 @@
         }
 
         .drop-zone p {
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-size: 0.875rem;
+        }
+
+        .paste-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--color-accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .paste-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .paste-btn svg {
+            width: 18px;
+            height: 18px;
         }
 
         .preview-area {
@@ -82,14 +106,14 @@
             max-height: 400px;
             object-fit: contain;
             border-radius: 12px;
-            background: var(--surface);
+            background: var(--color-surface);
         }
 
         .result-card {
-            background: var(--surface);
+            background: var(--color-surface);
             border-radius: 16px;
             padding: 1.5rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--color-border);
         }
 
         .result-header {
@@ -143,12 +167,12 @@
         }
 
         .result-subtitle {
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-size: 0.875rem;
         }
 
         .result-details {
-            background: var(--background);
+            background: var(--color-bg-primary);
             border-radius: 8px;
             padding: 1rem;
             margin-top: 1rem;
@@ -158,7 +182,7 @@
             display: flex;
             justify-content: space-between;
             padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--color-border);
         }
 
         .detail-row:last-child {
@@ -166,7 +190,7 @@
         }
 
         .detail-label {
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-size: 0.875rem;
         }
 
@@ -180,7 +204,7 @@
 
         .confidence-bar {
             height: 6px;
-            background: var(--border-color);
+            background: var(--color-border);
             border-radius: 3px;
             overflow: hidden;
             margin-top: 0.5rem;
@@ -211,10 +235,10 @@
 
         .verify-another button {
             background: transparent;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--color-border);
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
-            color: var(--text-primary);
+            color: var(--color-text-primary);
             cursor: pointer;
             font-family: inherit;
             font-size: 0.9rem;
@@ -222,15 +246,15 @@
         }
 
         .verify-another button:hover {
-            background: var(--surface);
-            border-color: var(--primary);
+            background: var(--color-surface);
+            border-color: var(--color-accent);
         }
 
         .back-link {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             text-decoration: none;
             font-size: 0.9rem;
             margin-bottom: 1.5rem;
@@ -238,7 +262,7 @@
         }
 
         .back-link:hover {
-            color: var(--primary);
+            color: var(--color-accent);
         }
 
         .back-link svg {
@@ -260,8 +284,8 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary);
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -280,7 +304,6 @@
 
 <body>
     <div class="app-container">
-        <!-- Header -->
         <header class="app-header">
             <div class="logo">
                 <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -292,10 +315,9 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="verify-container">
-                <a href="index.html" class="back-link">
+                <a href="/index.html" class="back-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
@@ -313,9 +335,16 @@
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <h3>Drop image here, click to upload, or paste</h3>
-                    <p>Supports PNG, JPEG, and WebP • Press Ctrl+V to paste</p>
+                    <h3>Drop image here or click to upload</h3>
+                    <p>Supports PNG, JPEG, and WebP images</p>
                     <input type="file" id="fileInput" class="hidden-input" accept="image/*">
+                    <button class="paste-btn" id="pasteBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                        </svg>
+                        Paste from Clipboard
+                    </button>
                 </div>
 
                 <div class="loading-spinner" id="loadingSpinner">
@@ -372,6 +401,7 @@
     <script>
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
+        const pasteBtn = document.getElementById('pasteBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const previewArea = document.getElementById('previewArea');
         const imagePreview = document.getElementById('imagePreview');
@@ -385,15 +415,21 @@
         const embeddedMessage = document.getElementById('embeddedMessage');
         const verifyAnotherBtn = document.getElementById('verifyAnotherBtn');
 
-        // Drop zone events
-        dropZone.addEventListener('click', () => fileInput.click());
+        // Drop zone click (but not on paste button)
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.closest('.paste-btn')) return;
+            fileInput.click();
+        });
+
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
+
         dropZone.addEventListener('dragleave', () => {
             dropZone.classList.remove('dragover');
         });
+
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
@@ -403,7 +439,7 @@
             }
         });
 
-        // Clipboard paste support
+        // Keyboard paste (Ctrl+V)
         document.addEventListener('paste', (e) => {
             const items = e.clipboardData?.items;
             if (!items) return;
@@ -417,6 +453,26 @@
                     }
                     break;
                 }
+            }
+        });
+
+        // Paste button for mobile (uses Clipboard API)
+        pasteBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                const clipboardItems = await navigator.clipboard.read();
+                for (const item of clipboardItems) {
+                    const imageType = item.types.find(type => type.startsWith('image/'));
+                    if (imageType) {
+                        const blob = await item.getType(imageType);
+                        processImage(blob);
+                        return;
+                    }
+                }
+                alert('No image found in clipboard. Copy an image first, then try again.');
+            } catch (err) {
+                console.error('Clipboard read failed:', err);
+                alert('Could not access clipboard. Please use drag and drop instead.');
             }
         });
 
@@ -444,7 +500,6 @@
                 img.onload = () => {
                     imagePreview.src = e.target.result;
 
-                    // Create canvas to get image data
                     const canvas = document.createElement('canvas');
                     canvas.width = img.width;
                     canvas.height = img.height;
@@ -452,7 +507,6 @@
                     ctx.drawImage(img, 0, 0);
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-                    // Verify watermarks
                     setTimeout(() => {
                         verifyWatermarks(imageData);
                     }, 500);
@@ -470,23 +524,21 @@
             let robustResult = null;
             let lsbResult = null;
 
-            // Try robust watermark first
             try {
-                robustResult = RobustWatermark.decode(imageData);
+                if (typeof RobustWatermark !== 'undefined') {
+                    robustResult = RobustWatermark.decode(imageData);
+                }
             } catch (e) {
                 console.warn('Robust decode error:', e);
             }
 
-            // Also try LSB steganography
             try {
                 lsbResult = Steganography.decode(imageData);
             } catch (e) {
                 console.warn('LSB decode error:', e);
             }
 
-            // Determine result
             if (robustResult && robustResult.found && robustResult.confidence > 0.6) {
-                // Robust watermark found
                 showResult('success',
                     'Authentic RealPic Watermark',
                     'This image contains a robust, tamper-resistant watermark',
@@ -495,7 +547,6 @@
                     robustResult.message || 'Unable to decode message'
                 );
             } else if (lsbResult) {
-                // LSB watermark found (less reliable)
                 showResult('warning',
                     'Legacy Watermark Detected',
                     'This image has an older LSB watermark (may have been modified)',
@@ -504,7 +555,6 @@
                     lsbResult
                 );
             } else if (robustResult && robustResult.confidence > 0.3) {
-                // Partial match - possibly modified
                 showResult('warning',
                     'Possible Watermark Detected',
                     'The image may have been modified or compressed',
@@ -513,7 +563,6 @@
                     robustResult.message || 'Watermark damaged'
                 );
             } else {
-                // No watermark found
                 showResult('error',
                     'No Watermark Found',
                     'This image does not contain a valid RealPic watermark',
@@ -525,7 +574,6 @@
         }
 
         function showResult(type, title, subtitle, confidence, wmType, message) {
-            // Update icon
             resultIcon.className = `result-icon ${type}`;
             if (type === 'success') {
                 resultIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -549,12 +597,10 @@
             resultTitle.textContent = title;
             resultSubtitle.textContent = subtitle;
 
-            // Update confidence bar
             const percent = Math.round(confidence * 100);
             confidenceFill.style.width = `${percent}%`;
             confidenceFill.className = `confidence-fill ${confidence > 0.7 ? 'high' : confidence > 0.4 ? 'medium' : 'low'}`;
 
-            // Update details
             watermarkType.textContent = wmType;
             confidenceValue.textContent = `${percent}%`;
             embeddedMessage.textContent = message || 'N/A';
