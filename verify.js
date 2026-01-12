@@ -102,32 +102,39 @@
         });
     }
 
+    // Track current blob URL for cleanup
+    let currentBlobUrl = null;
+
     // Process uploaded/pasted image
     function processImage(file) {
         dropZone.style.display = 'none';
         loadingSpinner.classList.add('active');
         previewArea.classList.remove('active');
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                imagePreview.src = e.target.result;
+        // Clean up previous blob URL
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+        }
 
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Create blob URL (short URL, won't crash Firefox on share/copy)
+        currentBlobUrl = URL.createObjectURL(file);
 
-                setTimeout(() => {
-                    verifyWatermarks(imageData);
-                }, 500);
-            };
-            img.src = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+            imagePreview.src = currentBlobUrl;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            setTimeout(() => {
+                verifyWatermarks(imageData);
+            }, 500);
         };
-        reader.readAsDataURL(file);
+        img.src = currentBlobUrl;
     }
 
     // Verify watermarks in image
