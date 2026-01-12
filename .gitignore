@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Uploaded images (stored in Railway Volume in production)
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

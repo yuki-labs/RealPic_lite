@@ -114,7 +114,7 @@
         });
 
         // Share link button
-        createShareLink.addEventListener('click', uploadToImgur);
+        createShareLink.addEventListener('click', uploadImage);
 
         // Copy share URL button
         copyShareUrl.addEventListener('click', () => {
@@ -170,8 +170,8 @@
         createShareLink.disabled = false;
     }
 
-    // Upload to Imgur for shareable link
-    async function uploadToImgur() {
+    // Upload to local server for shareable link
+    async function uploadImage() {
         if (!currentFile) {
             shareNote.textContent = 'No image to share';
             shareNote.className = 'share-note error';
@@ -183,35 +183,28 @@
         shareNote.className = 'share-note';
 
         try {
-            // Convert file to base64
-            const base64 = await fileToBase64(currentFile);
+            // Create form data for upload
+            const formData = new FormData();
+            formData.append('image', currentFile);
 
-            // Upload to Imgur (anonymous upload)
-            const response = await fetch('https://api.imgur.com/3/image', {
+            // Upload to our own server
+            const response = await fetch('/api/upload', {
                 method: 'POST',
-                headers: {
-                    'Authorization': 'Client-ID 546c25a59c58ad7', // Anonymous Imgur client ID
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    image: base64.split(',')[1], // Remove data:image/... prefix
-                    type: 'base64'
-                })
+                body: formData
             });
 
             const data = await response.json();
 
             if (data.success) {
-                const imgurUrl = data.data.link;
-                shareUrl.value = imgurUrl;
+                shareUrl.value = data.data.fullUrl;
                 shareResult.classList.remove('hidden');
                 shareNote.textContent = 'Shareable link created! Anyone can view this image.';
                 shareNote.className = 'share-note success';
             } else {
-                throw new Error(data.data?.error || 'Upload failed');
+                throw new Error(data.error || 'Upload failed');
             }
         } catch (err) {
-            console.error('Imgur upload failed:', err);
+            console.error('Upload failed:', err);
             shareNote.textContent = 'Upload failed. Try again later.';
             shareNote.className = 'share-note error';
             createShareLink.disabled = false;
