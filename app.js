@@ -695,15 +695,14 @@ const App = (() => {
         elements.previewSection.classList.remove('hidden');
         stopCamera();
 
-        // Convert canvas to blob for upload
         const canvas = elements.previewCanvas;
 
-        // First show the data URL while uploading (for instant feedback)
-        const dataUrl = canvas.toDataURL('image/png');
-        elements.previewImage.src = dataUrl;
+        // Show loading state
+        elements.previewImage.src = '';
+        elements.previewImage.alt = 'Uploading...';
         updatePreviewContainerSize();
 
-        // Upload in background for shareable URL
+        // Upload and wait for shareable URL
         try {
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             const formData = new FormData();
@@ -716,13 +715,19 @@ const App = (() => {
 
             const data = await response.json();
             if (data.success) {
-                // Replace preview src with uploaded URL (enables shareable context menu)
+                // Use only the shareable URL
                 elements.previewImage.src = data.data.fullUrl;
+                elements.previewImage.alt = 'Captured photo';
                 console.log('Photo uploaded for sharing:', data.data.fullUrl);
+            } else {
+                throw new Error(data.error || 'Upload failed');
             }
         } catch (err) {
-            console.warn('Auto-upload failed, using local preview:', err);
-            // Keep using the data URL - photo is still viewable
+            console.error('Upload failed:', err);
+            // Fallback to data URL if upload fails
+            elements.previewImage.src = canvas.toDataURL('image/png');
+            elements.previewImage.alt = 'Captured photo (not shareable)';
+            showToast('Upload failed - image not shareable', 'error');
         }
     }
 
