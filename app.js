@@ -707,14 +707,25 @@ const App = (() => {
 
         const canvas = elements.previewCanvas;
 
-        // Reset container styles - let CSS handle sizing
+        // Set container size during loading (based on canvas aspect ratio)
         if (elements.photoPreviewContainer) {
             const container = elements.photoPreviewContainer;
-            container.style.width = '';
-            container.style.maxWidth = '';
-            container.style.maxHeight = '';
-            container.style.height = '';
-            container.style.aspectRatio = '';
+            // Calculate size that fits in viewport while maintaining aspect ratio
+            const maxWidth = Math.min(canvas.width, window.innerWidth - 32);
+            const maxHeight = Math.min(canvas.height, window.innerHeight - 250);
+            const aspectRatio = canvas.width / canvas.height;
+
+            let width, height;
+            if (maxWidth / aspectRatio <= maxHeight) {
+                width = maxWidth;
+                height = maxWidth / aspectRatio;
+            } else {
+                height = maxHeight;
+                width = maxHeight * aspectRatio;
+            }
+
+            container.style.width = `${width}px`;
+            container.style.height = `${height}px`;
         }
 
         // Show loading overlay
@@ -766,6 +777,12 @@ const App = (() => {
             elements.uploadLoading.classList.add('hidden');
         }
         elements.previewImage.style.display = 'block';
+
+        // Reset container size - let CSS handle final sizing based on image
+        if (elements.photoPreviewContainer) {
+            elements.photoPreviewContainer.style.width = '';
+            elements.photoPreviewContainer.style.height = '';
+        }
     }
 
     function showVideoPreview() {
