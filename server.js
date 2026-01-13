@@ -85,24 +85,7 @@ const upload = multer({
     }
 });
 
-// Serve static files from root
-app.use(express.static(__dirname));
-
-// Normalize URLs - trim whitespace from paths (handles trailing %20, etc.)
-app.use('/uploads', (req, res, next) => {
-    // Decode URL and trim whitespace
-    const decodedPath = decodeURIComponent(req.path).trim();
-    if (decodedPath !== req.path) {
-        // Redirect to clean URL if there was whitespace
-        return res.redirect(301, `/uploads${decodedPath}`);
-    }
-    next();
-});
-
-// Serve uploaded images
-app.use('/uploads', express.static(UPLOADS_DIR));
-
-// Share page - displays image with branding
+// Share page - displays image with branding (BEFORE static middleware)
 app.get('/share/:filename', (req, res) => {
     const filename = req.params.filename.trim();
     const filepath = path.join(UPLOADS_DIR, filename);
@@ -123,6 +106,23 @@ app.get('/share/:filename', (req, res) => {
 
     res.send(html);
 });
+
+// Serve static files from root
+app.use(express.static(__dirname));
+
+// Normalize URLs - trim whitespace from paths (handles trailing %20, etc.)
+app.use('/uploads', (req, res, next) => {
+    // Decode URL and trim whitespace
+    const decodedPath = decodeURIComponent(req.path).trim();
+    if (decodedPath !== req.path) {
+        // Redirect to clean URL if there was whitespace
+        return res.redirect(301, `/uploads${decodedPath}`);
+    }
+    next();
+});
+
+// Serve uploaded images
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // API: Upload image
 app.post('/api/upload', upload.single('image'), (req, res) => {
@@ -162,6 +162,7 @@ app.get('/api/images', (req, res) => {
             images: files.map(f => ({
                 filename: f.name,
                 url: `/uploads/${f.name}`,
+                shareUrl: `/share/${f.name}`,
                 created: new Date(f.created).toISOString()
             }))
         }
