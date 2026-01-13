@@ -729,10 +729,11 @@ const App = (() => {
 
             const data = await response.json();
             if (data.success) {
-                // Use only the shareable URL
-                elements.previewImage.src = data.data.fullUrl;
+                // Use only the shareable URL (trim to remove any whitespace)
+                const shareableUrl = data.data.fullUrl.trim();
+                elements.previewImage.src = shareableUrl;
                 elements.previewImage.alt = 'Captured photo';
-                console.log('Photo uploaded for sharing:', data.data.fullUrl);
+                console.log('Photo uploaded for sharing:', shareableUrl);
             } else {
                 throw new Error(data.error || 'Upload failed');
             }

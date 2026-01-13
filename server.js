@@ -66,7 +66,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueId = crypto.randomBytes(8).toString('hex');
-        const ext = path.extname(file.originalname) || '.png';
+        const ext = (path.extname(file.originalname) || '.png').trim();
         cb(null, `${uniqueId}${ext}`);
     }
 });
@@ -97,8 +97,8 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
         return res.status(400).json({ success: false, error: 'No image provided' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
-    const fullUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
+    const imageUrl = `/uploads/${req.file.filename.trim()}`;
+    const fullUrl = `${req.protocol}://${req.get('host')}${imageUrl}`.trim();
 
     // Get current count for info
     const currentCount = getUploadedFiles().length;
