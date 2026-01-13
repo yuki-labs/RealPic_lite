@@ -88,6 +88,17 @@ const upload = multer({
 // Serve static files from root
 app.use(express.static(__dirname));
 
+// Normalize URLs - trim whitespace from paths (handles trailing %20, etc.)
+app.use('/uploads', (req, res, next) => {
+    // Decode URL and trim whitespace
+    const decodedPath = decodeURIComponent(req.path).trim();
+    if (decodedPath !== req.path) {
+        // Redirect to clean URL if there was whitespace
+        return res.redirect(301, `/uploads${decodedPath}`);
+    }
+    next();
+});
+
 // Serve uploaded images
 app.use('/uploads', express.static(UPLOADS_DIR));
 
