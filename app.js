@@ -99,12 +99,6 @@ const App = (() => {
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
-        // Share button
-        const shareBtn = document.getElementById('shareBtn');
-        if (shareBtn) {
-            shareBtn.addEventListener('click', sharePhoto);
-        }
-
         // Mode toggle
         elements.photoModeBtn.addEventListener('click', () => setMode('photo'));
         elements.videoModeBtn.addEventListener('click', () => setMode('video'));
@@ -846,26 +840,6 @@ const App = (() => {
 
     function discardPhoto() {
         showCamera();
-    }
-
-    function sharePhoto() {
-        const shareUrl = elements.previewImage.dataset.shareUrl;
-        if (shareUrl) {
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                showToast('Share link copied to clipboard!', 'success');
-            }).catch(() => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = shareUrl;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showToast('Share link copied!', 'success');
-            });
-        } else {
-            showToast('Share link not available', 'error');
-        }
     }
 
     function discardVideo() {
