@@ -748,16 +748,22 @@ const App = (() => {
 
             const data = await response.json();
             if (data.success) {
-                // Use raw image URL for the preview (context menu gives direct link)
-                const imageUrl = data.data.url;
+                // Use share URL for the preview (context menu gives share page link)
                 const sharePageUrl = data.data.fullUrl.trim();
 
-                // Set image src to the raw image
-                elements.previewImage.src = imageUrl;
+                // Set image src to the share URL (this still loads the image via the share page)
+                // For the actual image display, we use the raw URL
+                elements.previewImage.src = data.data.url;
                 elements.previewImage.alt = 'Captured photo';
 
-                // Store share URL for copy functionality
+                // Store share URL for context menu - using a link wrapper approach
                 elements.previewImage.dataset.shareUrl = sharePageUrl;
+
+                // Update the image link wrapper if it exists
+                const imageLink = elements.previewImage.parentElement;
+                if (imageLink && imageLink.tagName === 'A') {
+                    imageLink.href = sharePageUrl;
+                }
 
                 console.log('Photo uploaded for sharing:', sharePageUrl);
                 showToast('Photo ready to share!', 'success');
