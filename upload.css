@@ -54,6 +54,12 @@
     align-items: center;
 }
 
+/* Image link wrapper - transparent, no styling */
+#previewImageLink {
+    display: block;
+    line-height: 0;
+}
+
 /* Show full image without cropping - container matches image size */
 #photoPreviewContainer #previewImage {
     display: block;
