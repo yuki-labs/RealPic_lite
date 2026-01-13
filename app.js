@@ -86,6 +86,8 @@ const App = (() => {
         elements.videoPreviewContainer = document.querySelector('#videoPreviewSection .preview-container');
         elements.discardVideoBtn = document.getElementById('discardVideoBtn');
         elements.saveVideoBtn = document.getElementById('saveVideoBtn');
+        elements.uploadLoading = document.getElementById('uploadLoading');
+        elements.photoPreviewContainer = document.getElementById('photoPreviewContainer');
     }
 
     function bindEvents() {
@@ -697,10 +699,20 @@ const App = (() => {
 
         const canvas = elements.previewCanvas;
 
-        // Show loading state
+        // Size the preview container to match the canvas aspect ratio
+        const containerWidth = Math.min(canvas.width, window.innerWidth - 32);
+        const containerHeight = containerWidth * (canvas.height / canvas.width);
+        if (elements.photoPreviewContainer) {
+            elements.photoPreviewContainer.style.width = `${containerWidth}px`;
+            elements.photoPreviewContainer.style.height = `${containerHeight}px`;
+        }
+
+        // Show loading overlay
         elements.previewImage.src = '';
-        elements.previewImage.alt = 'Uploading...';
-        updatePreviewContainerSize();
+        elements.previewImage.style.display = 'none';
+        if (elements.uploadLoading) {
+            elements.uploadLoading.classList.remove('hidden');
+        }
 
         // Upload and wait for shareable URL
         try {
@@ -729,6 +741,12 @@ const App = (() => {
             elements.previewImage.alt = 'Captured photo (not shareable)';
             showToast('Upload failed - image not shareable', 'error');
         }
+
+        // Hide loading overlay and show image
+        if (elements.uploadLoading) {
+            elements.uploadLoading.classList.add('hidden');
+        }
+        elements.previewImage.style.display = 'block';
     }
 
     function showVideoPreview() {

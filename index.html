@@ -7,6 +7,7 @@
     <meta name="description" content="RealPic Lite - Capture photos and videos with watermarks">
     <title>RealPic Lite</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="upload.css">
 </head>
 
 <body>
@@ -94,9 +95,13 @@
 
             <!-- Photo Preview Section -->
             <section class="preview-section hidden" id="previewSection">
-                <div class="preview-container">
+                <div class="preview-container" id="photoPreviewContainer">
                     <canvas id="previewCanvas" class="hidden"></canvas>
                     <img id="previewImage" alt="Watermarked photo">
+                    <div class="upload-loading" id="uploadLoading">
+                        <div class="upload-spinner"></div>
+                        <span>Uploading...</span>
+                    </div>
                     <div class="watermark-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
