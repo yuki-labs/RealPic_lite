@@ -641,7 +641,8 @@ const App = (() => {
             opacity: settings.opacity,
             size: settings.size,
             showDateTime: settings.showDateTime,
-            customText: settings.customText
+            customText: settings.customText,
+            cameraName: currentCameraLabel
         });
 
         // Apply robust invisible watermark (DCT-based, survives compression/resizing)

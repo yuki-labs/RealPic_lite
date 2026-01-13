@@ -54,6 +54,11 @@ const Watermark = (() => {
         const userAgent = navigator.userAgent;
         lines.push({ text: userAgent, fontSize: secondaryFontSize, fontWeight: 400 });
 
+        // Line 5: Camera name (if provided)
+        if (config.cameraName && config.cameraName.trim() !== '') {
+            lines.push({ text: `📷 ${config.cameraName.trim()}`, fontSize: secondaryFontSize, fontWeight: 400 });
+        }
+
         ctx.save();
         ctx.globalAlpha = opacity;
 
