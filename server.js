@@ -102,14 +102,38 @@ app.use('/uploads', (req, res, next) => {
 // Serve uploaded images
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// Share page - displays image with branding
+app.get('/share/:filename', (req, res) => {
+    const filename = req.params.filename.trim();
+    const filepath = path.join(UPLOADS_DIR, filename);
+
+    if (!fs.existsSync(filepath)) {
+        return res.status(404).send('Image not found');
+    }
+
+    // Read the share template and inject the filename
+    const templatePath = path.join(__dirname, 'share.html');
+    let html = fs.readFileSync(templatePath, 'utf8');
+
+    // Inject the filename as a JavaScript variable
+    html = html.replace(
+        'window.SHARE_FILENAME',
+        `window.SHARE_FILENAME = "${filename}"`
+    );
+
+    res.send(html);
+});
+
 // API: Upload image
 app.post('/api/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, error: 'No image provided' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename.trim()}`;
-    const fullUrl = `${req.protocol}://${req.get('host')}${imageUrl}`.trim();
+    const filename = req.file.filename.trim();
+    const imageUrl = `/uploads/${filename}`;
+    const shareUrl = `/share/${filename}`;
+    const fullUrl = `${req.protocol}://${req.get('host')}${shareUrl}`.trim();
 
     // Get current count for info
     const currentCount = getUploadedFiles().length;
@@ -117,8 +141,9 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     res.json({
         success: true,
         data: {
-            filename: req.file.filename,
+            filename: filename,
             url: imageUrl,
+            shareUrl: shareUrl,
             fullUrl: fullUrl,
             size: req.file.size,
             imagesStored: currentCount

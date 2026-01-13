@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View a photo captured with RealPic Lite">
+    <meta property="og:title" content="RealPic Lite - Shared Photo">
+    <meta property="og:description" content="A watermarked photo captured with RealPic Lite">
+    <meta property="og:image" content="">
+    <meta property="og:type" content="website">
+    <title>RealPic Lite - Shared Photo</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/upload.css">
+    <style>
+        .share-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .share-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .share-image-container {
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--color-surface);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .share-image {
+            display: block;
+            max-width: 100%;
+            max-height: calc(100vh - 250px);
+            width: auto;
+            height: auto;
+        }
+
+        .watermark-badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--color-success);
+        }
+
+        .watermark-badge svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+        }
+
+        .share-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--color-accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .share-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .share-btn.secondary {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+
+        .share-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .error-message h2 {
+            color: var(--color-danger);
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container share-page">
+        <header class="app-header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+                </svg>
+                <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
+            </div>
+            <a href="/verify.html" class="header-link" title="Verify Watermark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M9 12l2 2 4-4" />
+                </svg>
+                <span>Verify</span>
+            </a>
+        </header>
+
+        <main class="share-content">
+            <div id="imageContainer" class="share-image-container">
+                <img id="shareImage" class="share-image" alt="Shared photo">
+                <div class="watermark-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                    <span>Watermarked</span>
+                </div>
+                <div class="upload-loading" id="loading">
+                    <div class="upload-spinner"></div>
+                    <span>Loading...</span>
+                </div>
+            </div>
+
+            <div class="share-actions">
+                <a id="downloadBtn" class="share-btn" download>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="7,10 12,15 17,10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download</span>
+                </a>
+                <a href="/" class="share-btn secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    <span>Take Photo</span>
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const filename = window.SHARE_FILENAME;
+            const imageUrl = `/uploads/${filename}`;
+
+            const img = document.getElementById('shareImage');
+            const loading = document.getElementById('loading');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            img.onload = () => {
+                loading.classList.add('hidden');
+            };
+
+            img.onerror = () => {
+                loading.innerHTML = '<span style="color: var(--color-danger);">Image not found</span>';
+            };
+
+            img.src = imageUrl;
+            downloadBtn.href = imageUrl;
+            downloadBtn.download = filename;
+
+            // Update OG image meta tag
+            document.querySelector('meta[property="og:image"]').content = window.location.origin + imageUrl;
+        })();
+    </script>
+</body>
+
+</html>

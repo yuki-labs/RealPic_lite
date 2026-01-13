@@ -99,6 +99,12 @@ const App = (() => {
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
+        // Share button
+        const shareBtn = document.getElementById('shareBtn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', sharePhoto);
+        }
+
         // Mode toggle
         elements.photoModeBtn.addEventListener('click', () => setMode('photo'));
         elements.videoModeBtn.addEventListener('click', () => setMode('video'));
@@ -729,11 +735,19 @@ const App = (() => {
 
             const data = await response.json();
             if (data.success) {
-                // Use only the shareable URL (trim to remove any whitespace)
-                const shareableUrl = data.data.fullUrl.trim();
-                elements.previewImage.src = shareableUrl;
+                // Use raw image URL for the preview (context menu gives direct link)
+                const imageUrl = data.data.url;
+                const sharePageUrl = data.data.fullUrl.trim();
+
+                // Set image src to the raw image
+                elements.previewImage.src = imageUrl;
                 elements.previewImage.alt = 'Captured photo';
-                console.log('Photo uploaded for sharing:', shareableUrl);
+
+                // Store share URL for copy functionality
+                elements.previewImage.dataset.shareUrl = sharePageUrl;
+
+                console.log('Photo uploaded for sharing:', sharePageUrl);
+                showToast('Photo ready to share!', 'success');
             } else {
                 throw new Error(data.error || 'Upload failed');
             }
@@ -832,6 +846,26 @@ const App = (() => {
 
     function discardPhoto() {
         showCamera();
+    }
+
+    function sharePhoto() {
+        const shareUrl = elements.previewImage.dataset.shareUrl;
+        if (shareUrl) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('Share link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Share link copied!', 'success');
+            });
+        } else {
+            showToast('Share link not available', 'error');
+        }
     }
 
     function discardVideo() {
