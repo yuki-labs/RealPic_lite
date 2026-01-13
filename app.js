@@ -707,14 +707,14 @@ const App = (() => {
 
         const canvas = elements.previewCanvas;
 
-        // Size the preview container to match the canvas aspect ratio (same as camera)
+        // Reset container styles - let CSS handle sizing
         if (elements.photoPreviewContainer) {
             const container = elements.photoPreviewContainer;
-            container.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
-            container.style.width = '100%';
-            container.style.maxWidth = `${canvas.width}px`;
-            container.style.maxHeight = 'calc(100vh - 250px)';
-            container.style.height = 'auto';
+            container.style.width = '';
+            container.style.maxWidth = '';
+            container.style.maxHeight = '';
+            container.style.height = '';
+            container.style.aspectRatio = '';
         }
 
         // Show loading overlay
