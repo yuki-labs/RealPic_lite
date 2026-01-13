@@ -34,8 +34,9 @@
             margin: 0 auto;
             border-radius: 16px;
             overflow: hidden;
-            background: var(--color-surface);
+            background: var(--color-bg-tertiary);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: inline-block;
         }
 
         .share-image {
@@ -46,25 +47,32 @@
             height: auto;
         }
 
-        .watermark-badge {
-            position: absolute;
-            bottom: 12px;
-            left: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: var(--color-success);
+        /* Override any inherited watermark badge styles */
+        .share-image-container .share-badge {
+            position: absolute !important;
+            bottom: 12px !important;
+            left: 12px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            background: rgba(0, 0, 0, 0.7) !important;
+            backdrop-filter: blur(8px) !important;
+            padding: 6px 12px !important;
+            border-radius: 20px !important;
+            font-size: 0.75rem !important;
+            color: var(--color-success) !important;
+            width: auto !important;
+            height: auto !important;
+            top: auto !important;
+            right: auto !important;
+            z-index: 5;
         }
 
-        .watermark-badge svg {
-            width: 14px;
-            height: 14px;
-            stroke: currentColor;
+        .share-image-container .share-badge svg {
+            width: 14px !important;
+            height: 14px !important;
+            stroke: currentColor !important;
+            flex-shrink: 0;
         }
 
         .share-actions {
@@ -106,16 +114,6 @@
             width: 18px;
             height: 18px;
         }
-
-        .error-message {
-            text-align: center;
-            padding: 3rem;
-        }
-
-        .error-message h2 {
-            color: var(--color-danger);
-            margin-bottom: 1rem;
-        }
     </style>
 </head>
 
@@ -142,7 +140,7 @@
         <main class="share-content">
             <div id="imageContainer" class="share-image-container">
                 <img id="shareImage" class="share-image" alt="Shared photo">
-                <div class="watermark-badge">
+                <div class="share-badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         <path d="M9 12l2 2 4-4" />
