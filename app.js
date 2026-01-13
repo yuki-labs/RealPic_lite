@@ -8,6 +8,7 @@ const App = (() => {
     // State
     let currentStream = null;
     let currentVideoDeviceId = null; // Track specific camera device
+    let currentCameraLabel = null; // Track camera name for watermark
     let facingMode = 'user'; // 'environment' = rear, 'user' = front
     let currentMode = 'photo'; // 'photo' or 'video'
     let isRecording = false;
@@ -231,10 +232,11 @@ const App = (() => {
                 audio: false
             });
 
-            // Store the device ID for future use
+            // Store the device ID and label for future use
             const videoTrack = videoStream.getVideoTracks()[0];
             if (videoTrack) {
                 currentVideoDeviceId = videoTrack.getSettings().deviceId;
+                currentCameraLabel = videoTrack.label || 'Unknown Camera';
             }
 
             // Then request audio separately (Firefox works better this way)
@@ -686,6 +688,11 @@ const App = (() => {
 
         if (settings.includeUserAgent) {
             parts.push(`UA: ${navigator.userAgent}`);
+        }
+
+        // Always include camera name if available
+        if (currentCameraLabel) {
+            parts.push(`Camera: ${currentCameraLabel}`);
         }
 
         return parts.length > 0 ? parts.join(' | ') : null;
