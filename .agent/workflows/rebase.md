@@ -4,7 +4,7 @@ description: Rebase workflow - keep new-features synced with main
 
 # Rebase Workflow
 
-This workflow keeps `new-features` branch always on top of `main`, ensuring a clean linear history.
+This workflow keeps `new-features` branch always on top of `main`, with clear merge commits when deploying.
 
 ## Daily Development
 
@@ -50,9 +50,9 @@ git checkout main
 ```
 
 // turbo
-2. Merge (will be fast-forward if rebased):
+2. Merge with --no-ff to create merge commit:
 ```bash
-git merge new-features
+git merge new-features --no-ff -m "Merge new-features"
 ```
 
 // turbo
@@ -72,5 +72,12 @@ git checkout new-features
 | Action | Command |
 |--------|---------|
 | Sync from main | `git rebase main && git push --force` |
-| Deploy to main | `git checkout main && git merge new-features && git push` |
+| Deploy to main | `git checkout main && git merge new-features --no-ff && git push` |
 | Check status | `git log --oneline --graph -10` |
+
+## Why --no-ff?
+
+Using `--no-ff` creates a merge commit even when fast-forward is possible. This:
+- ✅ Shows feature branches clearly in history
+- ✅ Makes it easy to revert entire features
+- ✅ Creates a clear record of what was merged when
