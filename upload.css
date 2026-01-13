@@ -34,3 +34,9 @@
         transform: rotate(360deg);
     }
 }
+
+/* Center the photo preview container */
+#photoPreviewContainer {
+    margin: 0 auto;
+    position: relative;
+}
