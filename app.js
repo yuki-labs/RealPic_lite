@@ -100,6 +100,12 @@ const App = (() => {
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
+        // Copy Link button
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', copyShareLink);
+        }
+
         // Mode toggle
         elements.photoModeBtn.addEventListener('click', () => setMode('photo'));
         elements.videoModeBtn.addEventListener('click', () => setMode('video'));
@@ -871,6 +877,26 @@ const App = (() => {
 
     function discardPhoto() {
         showCamera();
+    }
+
+    function copyShareLink() {
+        const shareUrl = elements.previewImage.dataset.shareUrl;
+        if (shareUrl) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Link copied!', 'success');
+            });
+        } else {
+            showToast('Link not available yet', 'error');
+        }
     }
 
     function discardVideo() {
