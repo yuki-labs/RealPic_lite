@@ -68,3 +68,10 @@
     width: auto;
     height: auto;
 }
+
+/* Override secondary button fixed dimensions in preview controls */
+.preview-controls .control-btn.secondary {
+    width: auto;
+    height: auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+}
