@@ -633,10 +633,20 @@ const App = (() => {
             const formData = new FormData();
             formData.append('video', blob, `video${ext}`);
 
+            console.log('Uploading video:', { size: blob.size, type: blob.type, ext });
+
             const response = await fetch('/api/upload-video', {
                 method: 'POST',
                 body: formData
             });
+
+            console.log('Upload response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
+            }
 
             const data = await response.json();
             if (data.success) {

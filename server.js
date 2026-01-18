@@ -115,6 +115,10 @@ const imageStorage = multer.diskStorage({
 // Configure multer for video uploads
 const videoStorage = multer.diskStorage({
     destination: (req, file, cb) => {
+        // Ensure directory exists before upload
+        if (!fs.existsSync(VIDEOS_DIR)) {
+            fs.mkdirSync(VIDEOS_DIR, { recursive: true });
+        }
         enforceVideoLimit();
         cb(null, VIDEOS_DIR);
     },
@@ -237,25 +241,39 @@ app.post('/api/upload', uploadImage.single('image'), (req, res) => {
 });
 
 // API: Upload video
-app.post('/api/upload-video', uploadVideo.single('video'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No video provided' });
-    }
+app.post('/api/upload-video', (req, res) => {
+    uploadVideo.single('video')(req, res, (err) => {
+        if (err) {
+            console.error('Video upload error:', err);
+            return res.status(400).json({ success: false, error: err.message || 'Video upload failed' });
+        }
 
-    const filename = req.file.filename.trim();
-    const videoUrl = `/videos/${filename}`;
-    const shareUrl = `/share-video/${filename}`;
-    const fullUrl = `${req.protocol}://${req.get('host')}${shareUrl}`.trim();
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No video provided' });
+        }
 
-    res.json({
-        success: true,
-        data: {
-            filename: filename,
-            url: videoUrl,
-            shareUrl: shareUrl,
-            fullUrl: fullUrl,
-            size: req.file.size,
-            videosStored: getUploadedVideos().length
+        try {
+            const filename = req.file.filename.trim();
+            const videoUrl = `/videos/${filename}`;
+            const shareUrl = `/share-video/${filename}`;
+            const fullUrl = `${req.protocol}://${req.get('host')}${shareUrl}`.trim();
+
+            console.log('Video uploaded successfully:', filename, 'Size:', req.file.size);
+
+            res.json({
+                success: true,
+                data: {
+                    filename: filename,
+                    url: videoUrl,
+                    shareUrl: shareUrl,
+                    fullUrl: fullUrl,
+                    size: req.file.size,
+                    videosStored: getUploadedVideos().length
+                }
+            });
+        } catch (error) {
+            console.error('Error processing video upload:', error);
+            res.status(500).json({ success: false, error: 'Failed to process video upload' });
         }
     });
 });
