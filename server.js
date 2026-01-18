@@ -209,6 +209,9 @@ app.use('/videos', (req, res, next) => {
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/videos', express.static(VIDEOS_DIR));
 
+// Serve CSS directory
+app.use('/css', express.static(path.join(__dirname, 'css')));
+
 // API: Upload image
 app.post('/api/upload', uploadImage.single('image'), (req, res) => {
     if (!req.file) {

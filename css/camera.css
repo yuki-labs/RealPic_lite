@@ -1,0 +1,305 @@
+/* ============================================
+   RealPic Lite - Camera Styles
+   ============================================ */
+
+.camera-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-lg);
+    gap: var(--spacing-md);
+}
+
+.camera-container {
+    flex: 1;
+    position: relative;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#cameraFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: var(--color-bg-primary);
+}
+
+/* Camera Status */
+.camera-status {
+    position: absolute;
+    top: var(--spacing-md);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    transition: opacity var(--transition-base);
+    z-index: 10;
+}
+
+.camera-status.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-warning);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.camera-status.ready .status-dot {
+    background: var(--color-success);
+    animation: none;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    color: var(--color-text-tertiary);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mode-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mode-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-secondary);
+}
+
+.mode-btn.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+/* Recording Indicator */
+.recording-indicator {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(239, 68, 68, 0.9);
+    border-radius: var(--radius-full);
+    color: white;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    z-index: 20;
+    animation: fadeIn var(--transition-fast);
+}
+
+.recording-dot {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: recordingPulse 1s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
+}
+
+/* Camera Controls */
+.camera-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-md) 0;
+}
+
+.control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.control-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.control-btn.secondary {
+    width: 52px;
+    height: 52px;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.control-btn.secondary:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+    transform: scale(1.05);
+}
+
+.control-btn.primary {
+    background: var(--color-accent);
+    color: white;
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.control-btn.primary:hover {
+    background: var(--color-accent-hover);
+    box-shadow: var(--shadow-glow);
+    transform: scale(1.02);
+}
+
+.control-btn.danger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.control-btn.danger:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+/* Capture Button */
+.capture-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: transparent;
+    border: 4px solid white;
+    padding: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.capture-btn:hover {
+    transform: scale(1.05);
+    border-color: var(--color-accent);
+}
+
+.capture-btn-inner {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.capture-btn:hover .capture-btn-inner {
+    background: var(--color-accent);
+}
+
+.capture-btn:active .capture-btn-inner {
+    transform: scale(0.9);
+}
+
+.capture-btn-inner.recording {
+    animation: recordingPulse 1s ease-in-out infinite;
+    background: var(--color-danger) !important;
+}
+
+/* Capture Flash Effect */
+@keyframes captureFlash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.capture-flash {
+    animation: captureFlash 0.2s ease;
+}
+
+/* Responsive Camera */
+@media (max-width: 480px) {
+    .camera-section {
+        padding: var(--spacing-md);
+    }
+
+    .camera-controls {
+        gap: var(--spacing-lg);
+    }
+
+    .capture-btn {
+        width: 64px;
+        height: 64px;
+    }
+
+    .control-btn.secondary {
+        width: 44px;
+        height: 44px;
+    }
+
+    .mode-toggle {
+        padding: var(--spacing-xs) 0;
+    }
+
+    .mode-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+
+    .mode-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+}
