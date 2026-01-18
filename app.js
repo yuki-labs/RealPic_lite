@@ -67,7 +67,7 @@ const App = (() => {
         elements.captureBtnInner = document.getElementById('captureBtnInner');
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
         elements.settingsBtn = document.getElementById('settingsBtn');
-        elements.discardBtn = document.getElementById('discardBtn');
+        elements.returnBtn = document.getElementById('returnBtn');
         elements.saveBtn = document.getElementById('saveBtn');
         elements.settingsModal = document.getElementById('settingsModal');
         elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -87,7 +87,7 @@ const App = (() => {
         elements.videoPreviewSection = document.getElementById('videoPreviewSection');
         elements.videoPreview = document.getElementById('videoPreview');
         elements.videoPreviewContainer = document.querySelector('#videoPreviewSection .preview-container');
-        elements.discardVideoBtn = document.getElementById('discardVideoBtn');
+        elements.returnVideoBtn = document.getElementById('returnVideoBtn');
         elements.saveVideoBtn = document.getElementById('saveVideoBtn');
         elements.uploadLoading = document.getElementById('uploadLoading');
         elements.photoPreviewContainer = document.getElementById('photoPreviewContainer');
@@ -97,7 +97,7 @@ const App = (() => {
         elements.captureBtn.addEventListener('click', handleCapture);
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
-        elements.discardBtn.addEventListener('click', discardPhoto);
+        elements.returnBtn.addEventListener('click', returnToCapture);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
@@ -112,7 +112,7 @@ const App = (() => {
         elements.videoModeBtn.addEventListener('click', () => setMode('video'));
 
         // Video controls
-        elements.discardVideoBtn.addEventListener('click', discardVideo);
+        elements.returnVideoBtn.addEventListener('click', returnToCapture);
 
         // Copy Video Link button
         const copyVideoLinkBtn = document.getElementById('copyVideoLinkBtn');
@@ -943,7 +943,18 @@ const App = (() => {
         initCamera();
     }
 
-    function discardPhoto() {
+    function returnToCapture() {
+        // Clean up video resources if in video mode
+        if (elements.videoPreview && elements.videoPreview.src) {
+            elements.videoPreview.onloadedmetadata = null;
+            elements.videoPreview.onerror = null;
+            if (elements.videoPreview.dataset.blobUrl) {
+                URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
+                delete elements.videoPreview.dataset.blobUrl;
+            }
+            elements.videoPreview.src = '';
+        }
+        recordedChunks = [];
         showCamera();
     }
 
@@ -987,20 +998,7 @@ const App = (() => {
         }
     }
 
-    function discardVideo() {
-        // Clear event handlers to prevent error toast when clearing src
-        elements.videoPreview.onloadedmetadata = null;
-        elements.videoPreview.onerror = null;
-
-        // Clean up blob URL
-        if (elements.videoPreview.dataset.blobUrl) {
-            URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
-            delete elements.videoPreview.dataset.blobUrl;
-        }
-        elements.videoPreview.src = '';
-        recordedChunks = [];
-        showCamera();
-    }
+    // discardVideo is now handled by returnToCapture
 
     // Download Functions
     function downloadPhoto() {
@@ -1028,7 +1026,7 @@ const App = (() => {
         URL.revokeObjectURL(url);
 
         showToast('Video downloaded!', 'success');
-        discardVideo();
+        returnToCapture();
     }
 
     // Toast Notifications
