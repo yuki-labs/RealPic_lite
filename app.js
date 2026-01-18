@@ -344,10 +344,7 @@ const App = (() => {
     }
 
     async function switchCamera() {
-        if (isRecording) {
-            showToast('Cannot switch camera while recording', 'error');
-            return;
-        }
+        const wasRecording = isRecording;
 
         updateCameraStatus('Switching camera...');
 
@@ -357,7 +354,7 @@ const App = (() => {
         const oldStream = currentStream;
 
         try {
-            // Request video first - always use facingMode for switching (clear deviceId)
+            // Request new video stream
             let videoStream = null;
 
             try {
@@ -388,28 +385,39 @@ const App = (() => {
                 currentCameraLabel = videoTrack.label || 'Unknown Camera';
             }
 
-            // Then request audio separately
-            let audioStream = null;
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({
-                    video: false,
-                    audio: true
-                });
-            } catch (audioError) {
-                console.warn('Could not get audio:', audioError);
-            }
-
-            // Combine video and audio tracks into one stream
+            // Create combined stream with new video but preserve existing audio
             const combinedStream = new MediaStream();
 
+            // Add new video tracks
             videoStream.getVideoTracks().forEach(track => {
                 combinedStream.addTrack(track);
             });
 
-            if (audioStream) {
-                audioStream.getAudioTracks().forEach(track => {
+            // If recording, keep existing audio; otherwise get new audio
+            if (wasRecording && oldStream) {
+                // Preserve existing audio tracks during recording
+                oldStream.getAudioTracks().forEach(track => {
                     combinedStream.addTrack(track);
                 });
+                // Only stop old video tracks
+                oldStream.getVideoTracks().forEach(track => track.stop());
+            } else {
+                // Not recording - get fresh audio and stop all old tracks
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: true
+                    });
+                    audioStream.getAudioTracks().forEach(track => {
+                        combinedStream.addTrack(track);
+                    });
+                } catch (audioError) {
+                    console.warn('Could not get audio:', audioError);
+                }
+
+                if (oldStream) {
+                    oldStream.getTracks().forEach(track => track.stop());
+                }
             }
 
             facingMode = newFacingMode;
@@ -418,15 +426,15 @@ const App = (() => {
 
             await elements.cameraFeed.play();
 
-            if (oldStream) {
-                oldStream.getTracks().forEach(track => track.stop());
-            }
-
             updateCameraStatus('Ready', true);
             updateContainerSize();
             setTimeout(() => {
                 elements.cameraStatus.classList.add('hidden');
             }, 1000);
+
+            if (wasRecording) {
+                showToast('Camera switched!', 'success');
+            }
 
         } catch (error) {
             console.error('Error switching camera:', error);
