@@ -18,6 +18,8 @@ const App = (() => {
     let recordingStartTime = null;
     let recordingTimerInterval = null;
     let videoRenderInterval = null;
+    let recordingTimeoutId = null; // For auto-stop at max duration
+    const MAX_RECORDING_DURATION = 30; // Maximum recording duration in seconds
 
     // User-configurable settings
     const settings = {
@@ -65,7 +67,7 @@ const App = (() => {
         elements.captureBtnInner = document.getElementById('captureBtnInner');
         elements.switchCameraBtn = document.getElementById('switchCameraBtn');
         elements.settingsBtn = document.getElementById('settingsBtn');
-        elements.discardBtn = document.getElementById('discardBtn');
+        elements.returnBtn = document.getElementById('returnBtn');
         elements.saveBtn = document.getElementById('saveBtn');
         elements.settingsModal = document.getElementById('settingsModal');
         elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -85,7 +87,7 @@ const App = (() => {
         elements.videoPreviewSection = document.getElementById('videoPreviewSection');
         elements.videoPreview = document.getElementById('videoPreview');
         elements.videoPreviewContainer = document.querySelector('#videoPreviewSection .preview-container');
-        elements.discardVideoBtn = document.getElementById('discardVideoBtn');
+        elements.returnVideoBtn = document.getElementById('returnVideoBtn');
         elements.saveVideoBtn = document.getElementById('saveVideoBtn');
         elements.uploadLoading = document.getElementById('uploadLoading');
         elements.photoPreviewContainer = document.getElementById('photoPreviewContainer');
@@ -95,8 +97,7 @@ const App = (() => {
         elements.captureBtn.addEventListener('click', handleCapture);
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
-        elements.discardBtn.addEventListener('click', discardPhoto);
-        elements.saveBtn.addEventListener('click', downloadPhoto);
+        elements.returnBtn.addEventListener('click', returnToCapture);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
@@ -111,8 +112,13 @@ const App = (() => {
         elements.videoModeBtn.addEventListener('click', () => setMode('video'));
 
         // Video controls
-        elements.discardVideoBtn.addEventListener('click', discardVideo);
-        elements.saveVideoBtn.addEventListener('click', downloadVideo);
+        elements.returnVideoBtn.addEventListener('click', returnToCapture);
+
+        // Copy Video Link button
+        const copyVideoLinkBtn = document.getElementById('copyVideoLinkBtn');
+        if (copyVideoLinkBtn) {
+            copyVideoLinkBtn.addEventListener('click', copyVideoShareLink);
+        }
 
         // Close modal on overlay click
         elements.settingsModal.addEventListener('click', (e) => {
@@ -338,10 +344,7 @@ const App = (() => {
     }
 
     async function switchCamera() {
-        if (isRecording) {
-            showToast('Cannot switch camera while recording', 'error');
-            return;
-        }
+        const wasRecording = isRecording;
 
         updateCameraStatus('Switching camera...');
 
@@ -351,7 +354,7 @@ const App = (() => {
         const oldStream = currentStream;
 
         try {
-            // Request video first - always use facingMode for switching (clear deviceId)
+            // Request new video stream
             let videoStream = null;
 
             try {
@@ -375,34 +378,46 @@ const App = (() => {
                 });
             }
 
-            // Store the new device ID for future use
+            // Store the new device ID and label for future use
             const videoTrack = videoStream.getVideoTracks()[0];
             if (videoTrack) {
                 currentVideoDeviceId = videoTrack.getSettings().deviceId;
+                currentCameraLabel = videoTrack.label || 'Unknown Camera';
             }
 
-            // Then request audio separately
-            let audioStream = null;
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({
-                    video: false,
-                    audio: true
-                });
-            } catch (audioError) {
-                console.warn('Could not get audio:', audioError);
-            }
-
-            // Combine video and audio tracks into one stream
+            // Create combined stream with new video but preserve existing audio
             const combinedStream = new MediaStream();
 
+            // Add new video tracks
             videoStream.getVideoTracks().forEach(track => {
                 combinedStream.addTrack(track);
             });
 
-            if (audioStream) {
-                audioStream.getAudioTracks().forEach(track => {
+            // If recording, keep existing audio; otherwise get new audio
+            if (wasRecording && oldStream) {
+                // Preserve existing audio tracks during recording
+                oldStream.getAudioTracks().forEach(track => {
                     combinedStream.addTrack(track);
                 });
+                // Only stop old video tracks
+                oldStream.getVideoTracks().forEach(track => track.stop());
+            } else {
+                // Not recording - get fresh audio and stop all old tracks
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: true
+                    });
+                    audioStream.getAudioTracks().forEach(track => {
+                        combinedStream.addTrack(track);
+                    });
+                } catch (audioError) {
+                    console.warn('Could not get audio:', audioError);
+                }
+
+                if (oldStream) {
+                    oldStream.getTracks().forEach(track => track.stop());
+                }
             }
 
             facingMode = newFacingMode;
@@ -411,15 +426,15 @@ const App = (() => {
 
             await elements.cameraFeed.play();
 
-            if (oldStream) {
-                oldStream.getTracks().forEach(track => track.stop());
-            }
-
             updateCameraStatus('Ready', true);
             updateContainerSize();
             setTimeout(() => {
                 elements.cameraStatus.classList.add('hidden');
             }, 1000);
+
+            if (wasRecording) {
+                showToast('Camera switched!', 'success');
+            }
 
         } catch (error) {
             console.error('Error switching camera:', error);
@@ -541,7 +556,15 @@ const App = (() => {
             updateRecordingTime();
             recordingTimerInterval = setInterval(updateRecordingTime, 1000);
 
-            showToast('Recording started', 'success');
+            // Auto-stop recording after max duration
+            recordingTimeoutId = setTimeout(() => {
+                if (isRecording) {
+                    showToast(`Maximum ${MAX_RECORDING_DURATION} seconds reached`, 'info');
+                    stopRecording();
+                }
+            }, MAX_RECORDING_DURATION * 1000);
+
+            showToast(`Recording (max ${MAX_RECORDING_DURATION}s)`, 'success');
 
         } catch (error) {
             console.error('Error starting recording:', error);
@@ -552,6 +575,12 @@ const App = (() => {
     function stopRecording() {
         if (mediaRecorder && isRecording) {
             isRecording = false;
+
+            // Clear auto-stop timeout
+            if (recordingTimeoutId) {
+                clearTimeout(recordingTimeoutId);
+                recordingTimeoutId = null;
+            }
 
             // Stop the animation frame
             if (videoRenderInterval) {
@@ -581,23 +610,81 @@ const App = (() => {
         elements.recordingTime.textContent = `${minutes}:${seconds}`;
     }
 
-    function processRecordedVideo() {
+    async function processRecordedVideo() {
         if (recordedChunks.length === 0) {
             showToast('No video data recorded', 'error');
             return;
         }
 
+        // Show video preview section with loading indicator
+        elements.cameraSection.classList.add('hidden');
+        elements.videoPreviewSection.classList.remove('hidden');
+        stopCamera();
+
         // Use the same mime type that was used for recording
         const blob = new Blob(recordedChunks, { type: recordedMimeType });
-        const url = URL.createObjectURL(blob);
+        const localUrl = URL.createObjectURL(blob);
 
-        // Set up the video element
-        elements.videoPreview.src = url;
-        elements.videoPreview.dataset.blobUrl = url;
+        // Set up the video element with local blob first
+        elements.videoPreview.src = localUrl;
+        elements.videoPreview.dataset.blobUrl = localUrl;
 
-        // Wait for video to be loadable before showing preview
+        // Show loading state
+        const videoLoading = document.getElementById('videoUploadLoading');
+        if (videoLoading) {
+            videoLoading.classList.remove('hidden');
+        }
+
+        // Upload video to server
+        try {
+            const ext = recordedMimeType.includes('mp4') ? '.mp4' : '.webm';
+            const formData = new FormData();
+            formData.append('video', blob, `video${ext}`);
+
+            console.log('Uploading video:', { size: blob.size, type: blob.type, ext });
+
+            const response = await fetch('/api/upload-video', {
+                method: 'POST',
+                body: formData
+            });
+
+            console.log('Upload response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                const sharePageUrl = data.data.fullUrl.trim();
+                elements.videoPreview.dataset.shareUrl = sharePageUrl;
+
+                // Update the video link wrapper if it exists
+                const videoLink = document.getElementById('videoPreviewLink');
+                if (videoLink) {
+                    videoLink.href = sharePageUrl;
+                }
+
+                console.log('Video uploaded for sharing:', sharePageUrl);
+                showToast('Video ready to share!', 'success');
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (err) {
+            console.error('Video upload failed:', err);
+            showToast('Upload failed - video not shareable', 'error');
+        }
+
+        // Hide loading overlay
+        if (videoLoading) {
+            videoLoading.classList.add('hidden');
+        }
+
+        // Wait for video to be loadable
         elements.videoPreview.onloadedmetadata = () => {
-            showVideoPreview();
+            updateVideoPreviewContainerSize();
         };
 
         elements.videoPreview.onerror = (e) => {
@@ -875,7 +962,18 @@ const App = (() => {
         initCamera();
     }
 
-    function discardPhoto() {
+    function returnToCapture() {
+        // Clean up video resources if in video mode
+        if (elements.videoPreview && elements.videoPreview.src) {
+            elements.videoPreview.onloadedmetadata = null;
+            elements.videoPreview.onerror = null;
+            if (elements.videoPreview.dataset.blobUrl) {
+                URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
+                delete elements.videoPreview.dataset.blobUrl;
+            }
+            elements.videoPreview.src = '';
+        }
+        recordedChunks = [];
         showCamera();
     }
 
@@ -899,20 +997,27 @@ const App = (() => {
         }
     }
 
-    function discardVideo() {
-        // Clear event handlers to prevent error toast when clearing src
-        elements.videoPreview.onloadedmetadata = null;
-        elements.videoPreview.onerror = null;
-
-        // Clean up blob URL
-        if (elements.videoPreview.dataset.blobUrl) {
-            URL.revokeObjectURL(elements.videoPreview.dataset.blobUrl);
-            delete elements.videoPreview.dataset.blobUrl;
+    function copyVideoShareLink() {
+        const shareUrl = elements.videoPreview.dataset.shareUrl;
+        if (shareUrl) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Link copied!', 'success');
+            });
+        } else {
+            showToast('Video link not available yet', 'error');
         }
-        elements.videoPreview.src = '';
-        recordedChunks = [];
-        showCamera();
     }
+
+    // discardVideo is now handled by returnToCapture
 
     // Download Functions
     function downloadPhoto() {
@@ -940,7 +1045,7 @@ const App = (() => {
         URL.revokeObjectURL(url);
 
         showToast('Video downloaded!', 'success');
-        discardVideo();
+        returnToCapture();
     }
 
     // Toast Notifications

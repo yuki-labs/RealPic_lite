@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="View a photo captured with RealPic Lite">
-    <meta property="og:title" content="RealPic Lite - Shared Photo">
-    <meta property="og:description" content="A watermarked photo captured with RealPic Lite">
-    <meta property="og:image" content="">
-    <meta property="og:type" content="website">
-    <title>RealPic Lite - Shared Photo</title>
+    <meta name="description" content="View a video captured with RealPic Lite">
+    <meta property="og:title" content="RealPic Lite - Shared Video">
+    <meta property="og:description" content="A watermarked video captured with RealPic Lite">
+    <meta property="og:type" content="video.other">
+    <title>RealPic Lite - Shared Video</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/css/share.css">
     <link rel="stylesheet" href="/upload.css">
@@ -26,18 +25,18 @@
                 </svg>
                 <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
             </a>
-            <a href="/verify.html" class="header-link" title="Verify Watermark">
+            <a href="/" class="header-link" title="Record Video">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="M9 12l2 2 4-4" />
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                 </svg>
-                <span>Verify</span>
+                <span>Record</span>
             </a>
         </header>
 
         <main class="share-content">
-            <div id="imageContainer" class="share-image-container">
-                <img id="shareImage" class="share-image" alt="Shared photo">
+            <div id="videoContainer" class="share-video-container">
+                <video id="shareVideo" class="share-video" controls playsinline></video>
                 <div class="share-badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -54,10 +53,10 @@
             <div class="share-actions">
                 <a href="/" class="share-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <circle cx="12" cy="12" r="3" />
+                        <polygon points="23 7 16 12 23 17 23 7" />
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                     </svg>
-                    <span>Take Photo</span>
+                    <span>Record Video</span>
                 </a>
             </div>
         </main>
@@ -66,23 +65,20 @@
     <script>
         (function () {
             const filename = window.SHARE_FILENAME;
-            const imageUrl = `/uploads/${filename}`;
+            const videoUrl = `/videos/${filename}`;
 
-            const img = document.getElementById('shareImage');
+            const video = document.getElementById('shareVideo');
             const loading = document.getElementById('loading');
 
-            img.onload = () => {
+            video.onloadeddata = () => {
                 loading.classList.add('hidden');
             };
 
-            img.onerror = () => {
-                loading.innerHTML = '<span style="color: var(--color-danger);">Image not found</span>';
+            video.onerror = () => {
+                loading.innerHTML = '<span style="color: var(--color-danger);">Video not found</span>';
             };
 
-            img.src = imageUrl;
-
-            // Update OG image meta tag
-            document.querySelector('meta[property="og:image"]').content = window.location.origin + imageUrl;
+            video.src = videoUrl;
         })();
     </script>
 </body>
