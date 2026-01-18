@@ -145,10 +145,23 @@ const uploadVideo = multer({
     storage: videoStorage,
     // No file size limit - duration limited to 30s on frontend
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('video/')) {
+        console.log('Video upload - received file:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype
+        });
+
+        // Accept video/* MIME types OR common video extensions
+        const ext = path.extname(file.originalname).toLowerCase();
+        const isVideoMime = file.mimetype.startsWith('video/') ||
+            file.mimetype.includes('video') ||
+            file.mimetype === 'application/octet-stream';
+        const isVideoExt = ['.webm', '.mp4', '.mov', '.avi', '.mkv'].includes(ext);
+
+        if (isVideoMime || isVideoExt) {
             cb(null, true);
         } else {
-            cb(new Error('Only video files are allowed'));
+            console.log('Video rejected - mimetype:', file.mimetype, 'ext:', ext);
+            cb(new Error(`Only video files are allowed. Received: ${file.mimetype}`));
         }
     }
 });
