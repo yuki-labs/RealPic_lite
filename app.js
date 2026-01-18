@@ -381,10 +381,11 @@ const App = (() => {
                 });
             }
 
-            // Store the new device ID for future use
+            // Store the new device ID and label for future use
             const videoTrack = videoStream.getVideoTracks()[0];
             if (videoTrack) {
                 currentVideoDeviceId = videoTrack.getSettings().deviceId;
+                currentCameraLabel = videoTrack.label || 'Unknown Camera';
             }
 
             // Then request audio separately
