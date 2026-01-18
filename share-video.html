@@ -103,12 +103,6 @@
             transform: scale(1.02);
         }
 
-        .share-btn.secondary {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            color: var(--color-text-primary);
-        }
-
         .share-btn svg {
             width: 18px;
             height: 18px;
@@ -127,7 +121,7 @@
                 </svg>
                 <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
             </div>
-            <a href="/" class="header-link" title="Take Video">
+            <a href="/" class="header-link" title="Record Video">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="23 7 16 12 23 17 23 7" />
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
@@ -153,15 +147,7 @@
             </div>
 
             <div class="share-actions">
-                <a id="downloadBtn" class="share-btn" download>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                        <polyline points="7,10 12,15 17,10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    <span>Download</span>
-                </a>
-                <a href="/" class="share-btn secondary">
+                <a href="/" class="share-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="23 7 16 12 23 17 23 7" />
                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
@@ -179,7 +165,6 @@
 
             const video = document.getElementById('shareVideo');
             const loading = document.getElementById('loading');
-            const downloadBtn = document.getElementById('downloadBtn');
 
             video.onloadeddata = () => {
                 loading.classList.add('hidden');
@@ -190,8 +175,6 @@
             };
 
             video.src = videoUrl;
-            downloadBtn.href = videoUrl;
-            downloadBtn.download = filename;
         })();
     </script>
 </body>
