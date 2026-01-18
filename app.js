@@ -96,7 +96,6 @@ const App = (() => {
         elements.switchCameraBtn.addEventListener('click', switchCamera);
         elements.settingsBtn.addEventListener('click', openSettings);
         elements.discardBtn.addEventListener('click', discardPhoto);
-        elements.saveBtn.addEventListener('click', downloadPhoto);
         elements.closeSettingsBtn.addEventListener('click', closeSettings);
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
 
