@@ -132,8 +132,14 @@
 
             <!-- Video Preview Section -->
             <section class="preview-section hidden" id="videoPreviewSection">
-                <div class="preview-container">
-                    <video id="videoPreview" controls playsinline></video>
+                <div class="preview-container" id="videoPreviewContainer">
+                    <a id="videoPreviewLink" href="#" target="_blank">
+                        <video id="videoPreview" controls playsinline></video>
+                    </a>
+                    <div class="upload-loading hidden" id="videoUploadLoading">
+                        <div class="upload-spinner"></div>
+                        <span>Uploading...</span>
+                    </div>
                     <div class="watermark-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -150,13 +156,12 @@
                         </svg>
                         <span>Discard</span>
                     </button>
-                    <button class="control-btn primary" id="saveVideoBtn">
+                    <button class="control-btn secondary" id="copyVideoLinkBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                            <polyline points="7,10 12,15 17,10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                         </svg>
-                        <span>Download</span>
+                        <span>Copy Link</span>
                     </button>
                 </div>
             </section>

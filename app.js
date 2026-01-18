@@ -111,7 +111,12 @@ const App = (() => {
 
         // Video controls
         elements.discardVideoBtn.addEventListener('click', discardVideo);
-        elements.saveVideoBtn.addEventListener('click', downloadVideo);
+
+        // Copy Video Link button
+        const copyVideoLinkBtn = document.getElementById('copyVideoLinkBtn');
+        if (copyVideoLinkBtn) {
+            copyVideoLinkBtn.addEventListener('click', copyVideoShareLink);
+        }
 
         // Close modal on overlay click
         elements.settingsModal.addEventListener('click', (e) => {
@@ -580,23 +585,71 @@ const App = (() => {
         elements.recordingTime.textContent = `${minutes}:${seconds}`;
     }
 
-    function processRecordedVideo() {
+    async function processRecordedVideo() {
         if (recordedChunks.length === 0) {
             showToast('No video data recorded', 'error');
             return;
         }
 
+        // Show video preview section with loading indicator
+        elements.cameraSection.classList.add('hidden');
+        elements.videoPreviewSection.classList.remove('hidden');
+        stopCamera();
+
         // Use the same mime type that was used for recording
         const blob = new Blob(recordedChunks, { type: recordedMimeType });
-        const url = URL.createObjectURL(blob);
+        const localUrl = URL.createObjectURL(blob);
 
-        // Set up the video element
-        elements.videoPreview.src = url;
-        elements.videoPreview.dataset.blobUrl = url;
+        // Set up the video element with local blob first
+        elements.videoPreview.src = localUrl;
+        elements.videoPreview.dataset.blobUrl = localUrl;
 
-        // Wait for video to be loadable before showing preview
+        // Show loading state
+        const videoLoading = document.getElementById('videoUploadLoading');
+        if (videoLoading) {
+            videoLoading.classList.remove('hidden');
+        }
+
+        // Upload video to server
+        try {
+            const ext = recordedMimeType.includes('mp4') ? '.mp4' : '.webm';
+            const formData = new FormData();
+            formData.append('video', blob, `video${ext}`);
+
+            const response = await fetch('/api/upload-video', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                const sharePageUrl = data.data.fullUrl.trim();
+                elements.videoPreview.dataset.shareUrl = sharePageUrl;
+
+                // Update the video link wrapper if it exists
+                const videoLink = document.getElementById('videoPreviewLink');
+                if (videoLink) {
+                    videoLink.href = sharePageUrl;
+                }
+
+                console.log('Video uploaded for sharing:', sharePageUrl);
+                showToast('Video ready to share!', 'success');
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (err) {
+            console.error('Video upload failed:', err);
+            showToast('Upload failed - video not shareable', 'error');
+        }
+
+        // Hide loading overlay
+        if (videoLoading) {
+            videoLoading.classList.add('hidden');
+        }
+
+        // Wait for video to be loadable
         elements.videoPreview.onloadedmetadata = () => {
-            showVideoPreview();
+            updateVideoPreviewContainerSize();
         };
 
         elements.videoPreview.onerror = (e) => {
@@ -895,6 +948,26 @@ const App = (() => {
             });
         } else {
             showToast('Link not available yet', 'error');
+        }
+    }
+
+    function copyVideoShareLink() {
+        const shareUrl = elements.videoPreview.dataset.shareUrl;
+        if (shareUrl) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Link copied!', 'success');
+            });
+        } else {
+            showToast('Video link not available yet', 'error');
         }
     }
 

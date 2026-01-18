@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View a video captured with RealPic Lite">
+    <meta property="og:title" content="RealPic Lite - Shared Video">
+    <meta property="og:description" content="A watermarked video captured with RealPic Lite">
+    <meta property="og:type" content="video.other">
+    <title>RealPic Lite - Shared Video</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/upload.css">
+    <style>
+        .share-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .share-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .share-video-container {
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--color-bg-tertiary);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: inline-block;
+        }
+
+        .share-video {
+            display: block;
+            max-width: 100%;
+            max-height: calc(100vh - 250px);
+            width: auto;
+            height: auto;
+            border-radius: 16px;
+        }
+
+        .share-video-container .share-badge {
+            position: absolute !important;
+            bottom: 12px !important;
+            left: 12px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            background: rgba(0, 0, 0, 0.7) !important;
+            backdrop-filter: blur(8px) !important;
+            padding: 6px 12px !important;
+            border-radius: 20px !important;
+            font-size: 0.75rem !important;
+            color: var(--color-success) !important;
+            width: auto !important;
+            height: auto !important;
+            top: auto !important;
+            right: auto !important;
+            z-index: 5;
+        }
+
+        .share-video-container .share-badge svg {
+            width: 14px !important;
+            height: 14px !important;
+            stroke: currentColor !important;
+            flex-shrink: 0;
+        }
+
+        .share-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--color-accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .share-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .share-btn.secondary {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+
+        .share-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container share-page">
+        <header class="app-header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+                </svg>
+                <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
+            </div>
+            <a href="/" class="header-link" title="Take Video">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span>Record</span>
+            </a>
+        </header>
+
+        <main class="share-content">
+            <div id="videoContainer" class="share-video-container">
+                <video id="shareVideo" class="share-video" controls playsinline></video>
+                <div class="share-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                    <span>Watermarked</span>
+                </div>
+                <div class="upload-loading" id="loading">
+                    <div class="upload-spinner"></div>
+                    <span>Loading...</span>
+                </div>
+            </div>
+
+            <div class="share-actions">
+                <a id="downloadBtn" class="share-btn" download>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="7,10 12,15 17,10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download</span>
+                </a>
+                <a href="/" class="share-btn secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="23 7 16 12 23 17 23 7" />
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                    </svg>
+                    <span>Record Video</span>
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const filename = window.SHARE_FILENAME;
+            const videoUrl = `/videos/${filename}`;
+
+            const video = document.getElementById('shareVideo');
+            const loading = document.getElementById('loading');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            video.onloadeddata = () => {
+                loading.classList.add('hidden');
+            };
+
+            video.onerror = () => {
+                loading.innerHTML = '<span style="color: var(--color-danger);">Video not found</span>';
+            };
+
+            video.src = videoUrl;
+            downloadBtn.href = videoUrl;
+            downloadBtn.download = filename;
+        })();
+    </script>
+</body>
+
+</html>
