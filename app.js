@@ -18,6 +18,8 @@ const App = (() => {
     let recordingStartTime = null;
     let recordingTimerInterval = null;
     let videoRenderInterval = null;
+    let recordingTimeoutId = null; // For auto-stop at max duration
+    const MAX_RECORDING_DURATION = 30; // Maximum recording duration in seconds
 
     // User-configurable settings
     const settings = {
@@ -545,7 +547,15 @@ const App = (() => {
             updateRecordingTime();
             recordingTimerInterval = setInterval(updateRecordingTime, 1000);
 
-            showToast('Recording started', 'success');
+            // Auto-stop recording after max duration
+            recordingTimeoutId = setTimeout(() => {
+                if (isRecording) {
+                    showToast(`Maximum ${MAX_RECORDING_DURATION} seconds reached`, 'info');
+                    stopRecording();
+                }
+            }, MAX_RECORDING_DURATION * 1000);
+
+            showToast(`Recording (max ${MAX_RECORDING_DURATION}s)`, 'success');
 
         } catch (error) {
             console.error('Error starting recording:', error);
@@ -556,6 +566,12 @@ const App = (() => {
     function stopRecording() {
         if (mediaRecorder && isRecording) {
             isRecording = false;
+
+            // Clear auto-stop timeout
+            if (recordingTimeoutId) {
+                clearTimeout(recordingTimeoutId);
+                recordingTimeoutId = null;
+            }
 
             // Stop the animation frame
             if (videoRenderInterval) {

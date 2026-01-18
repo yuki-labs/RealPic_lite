@@ -139,7 +139,7 @@ const uploadImage = multer({
 
 const uploadVideo = multer({
     storage: videoStorage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+    // No file size limit - duration limited to 30s on frontend
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('video/')) {
             cb(null, true);
