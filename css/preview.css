@@ -22,18 +22,6 @@
     border-radius: var(--radius-xl);
     overflow: hidden;
     border: 1px solid var(--color-border);
-    max-width: 100%;
-    max-height: calc(100vh - 250px);
-}
-
-/* Photo preview container - can expand */
-#photoPreviewContainer {
-    flex: 1;
-    width: 100%;
-}
-
-/* Video preview container - fits video size */
-#videoPreviewContainer {
     flex: none;
     width: auto;
 }
@@ -41,7 +29,9 @@
 /* Image Preview */
 #previewImage {
     max-width: 100%;
-    max-height: 100%;
+    max-height: calc(100vh - 250px);
+    width: auto;
+    height: auto;
     object-fit: contain;
     display: block;
     border-radius: var(--radius-md);
