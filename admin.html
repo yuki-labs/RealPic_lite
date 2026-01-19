@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>RealPic Lite - Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="/" class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+                </svg>
+                <span class="logo-text">RealPic <span class="logo-lite">Lite</span></span>
+            </a>
+            <div class="admin-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span>Admin</span>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            <div class="admin-header">
+                <h1>📁 Media Storage</h1>
+                <p>View and manage all stored images and videos</p>
+            </div>
+
+            <div class="storage-stats" id="storageStats">
+                <div class="stat-card">
+                    <span class="stat-value" id="imageCount">-</span>
+                    <span class="stat-label">Images</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="videoCount">-</span>
+                    <span class="stat-label">Videos</span>
+                </div>
+            </div>
+
+            <!-- Images Section -->
+            <section class="media-section">
+                <div class="section-header">
+                    <h2>📷 Images</h2>
+                    <span class="section-subtitle" id="imageSubtitle">Loading...</span>
+                </div>
+                <div class="media-grid" id="imageGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <span>Loading images...</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Videos Section -->
+            <section class="media-section">
+                <div class="section-header">
+                    <h2>🎬 Videos</h2>
+                    <span class="section-subtitle" id="videoSubtitle">Loading...</span>
+                </div>
+                <div class="media-grid" id="videoGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <span>Loading videos...</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="admin-footer">
+                <button class="btn-secondary" id="refreshBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6" />
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMedia();
+            document.getElementById('refreshBtn').addEventListener('click', loadMedia);
+        });
+
+        async function loadMedia() {
+            await Promise.all([loadImages(), loadVideos()]);
+        }
+
+        async function loadImages() {
+            const grid = document.getElementById('imageGrid');
+            const subtitle = document.getElementById('imageSubtitle');
+            const countEl = document.getElementById('imageCount');
+
+            try {
+                const response = await fetch('/api/images');
+                const data = await response.json();
+
+                if (data.success) {
+                    const images = data.data.images;
+                    countEl.textContent = images.length;
+                    subtitle.textContent = `${images.length} of ${data.data.maxImages} max`;
+
+                    if (images.length === 0) {
+                        grid.innerHTML = '<div class="empty-state">No images stored</div>';
+                        return;
+                    }
+
+                    grid.innerHTML = images.map(img => `
+                        <div class="media-card">
+                            <a href="${img.shareUrl}" target="_blank" class="media-link">
+                                <img src="${img.url}" alt="${img.filename}" loading="lazy">
+                            </a>
+                            <div class="media-info">
+                                <span class="media-filename">${img.filename}</span>
+                                <span class="media-date">${formatDate(img.created)}</span>
+                            </div>
+                            <div class="media-actions">
+                                <a href="${img.shareUrl}" target="_blank" class="action-btn" title="View Share Page">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                        <polyline points="15 3 21 3 21 9" />
+                                        <line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                </a>
+                                <button class="action-btn" onclick="copyLink('${window.location.origin}${img.shareUrl}')" title="Copy Link">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Failed to load images:', err);
+                grid.innerHTML = '<div class="error-state">Failed to load images</div>';
+            }
+        }
+
+        async function loadVideos() {
+            const grid = document.getElementById('videoGrid');
+            const subtitle = document.getElementById('videoSubtitle');
+            const countEl = document.getElementById('videoCount');
+
+            try {
+                const response = await fetch('/api/videos');
+                const data = await response.json();
+
+                if (data.success) {
+                    const videos = data.data.videos;
+                    countEl.textContent = videos.length;
+                    subtitle.textContent = `${videos.length} of ${data.data.maxVideos} max`;
+
+                    if (videos.length === 0) {
+                        grid.innerHTML = '<div class="empty-state">No videos stored</div>';
+                        return;
+                    }
+
+                    grid.innerHTML = videos.map(vid => `
+                        <div class="media-card video-card">
+                            <a href="${vid.shareUrl}" target="_blank" class="media-link">
+                                <video src="${vid.url}" preload="metadata"></video>
+                                <div class="video-overlay">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <polygon points="5 3 19 12 5 21 5 3" />
+                                    </svg>
+                                </div>
+                            </a>
+                            <div class="media-info">
+                                <span class="media-filename">${vid.filename}</span>
+                                <span class="media-date">${formatDate(vid.created)}</span>
+                            </div>
+                            <div class="media-actions">
+                                <a href="${vid.shareUrl}" target="_blank" class="action-btn" title="View Share Page">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                        <polyline points="15 3 21 3 21 9" />
+                                        <line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                </a>
+                                <button class="action-btn" onclick="copyLink('${window.location.origin}${vid.shareUrl}')" title="Copy Link">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Failed to load videos:', err);
+                grid.innerHTML = '<div class="error-state">Failed to load videos</div>';
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copied!');
+            }).catch(() => {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Link copied!');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'admin-toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+    </script>
+</body>
+
+</html>
