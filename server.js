@@ -202,6 +202,11 @@ app.get('/share-video/:filename', (req, res) => {
     res.send(html);
 });
 
+// Admin page - secret URL (not linked from main app)
+app.get('/admin-a7f3c2e9', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 // Serve static files from root
 app.use(express.static(__dirname));
 
