@@ -7,6 +7,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    align-items: center;
     padding: var(--spacing-lg);
     gap: var(--spacing-lg);
     animation: fadeIn var(--transition-base);
@@ -14,7 +15,6 @@
 
 .preview-container {
     position: relative;
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -22,6 +22,20 @@
     border-radius: var(--radius-xl);
     overflow: hidden;
     border: 1px solid var(--color-border);
+    max-width: 100%;
+    max-height: calc(100vh - 250px);
+}
+
+/* Photo preview container - can expand */
+#photoPreviewContainer {
+    flex: 1;
+    width: 100%;
+}
+
+/* Video preview container - fits video size */
+#videoPreviewContainer {
+    flex: none;
+    width: auto;
 }
 
 /* Image Preview */
@@ -39,7 +53,9 @@
 /* Video Preview */
 #videoPreview {
     max-width: 100%;
-    max-height: 100%;
+    max-height: calc(100vh - 250px);
+    width: auto;
+    height: auto;
     object-fit: contain;
     display: block;
     border-radius: var(--radius-md);

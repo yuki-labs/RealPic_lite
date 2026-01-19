@@ -934,25 +934,10 @@ const App = (() => {
             return;
         }
 
-        // Set the container's aspect ratio to match the video
-        container.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
-        container.style.flex = 'none';
-        container.style.width = '100%';
-        container.style.maxHeight = 'calc(100vh - 200px)';
-
-        // If container is taller than viewport allows, constrain by height
-        const section = elements.videoPreviewSection;
-        if (section) {
-            const videoAspect = video.videoWidth / video.videoHeight;
-            const availableHeight = section.clientHeight - 150;
-            const containerWidth = container.clientWidth;
-            const idealHeight = containerWidth / videoAspect;
-
-            if (idealHeight > availableHeight) {
-                container.style.width = `${availableHeight * videoAspect}px`;
-                container.style.alignSelf = 'center';
-            }
-        }
+        // Container will now naturally wrap the video due to CSS
+        // Just ensure proper sizing is applied
+        container.style.width = 'auto';
+        container.style.maxWidth = '100%';
     }
 
     function showCamera() {
