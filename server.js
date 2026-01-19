@@ -13,6 +13,18 @@ const VIDEOS_DIR = process.env.VIDEOS_DIR || path.join(__dirname, 'videos');
 const MAX_IMAGES = 5; // Maximum number of images to keep
 const MAX_VIDEOS = 5; // Maximum number of videos to keep
 
+// Admin credentials from environment variables
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
+
+// Simple session storage for admin tokens (in-memory)
+const adminSessions = new Map();
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Parse JSON and URL-encoded bodies
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Ensure directories exist
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -202,10 +214,66 @@ app.get('/share-video/:filename', (req, res) => {
     res.send(html);
 });
 
-// Admin page - secret URL (not linked from main app)
-app.get('/admin-a7f3c2e9', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+// Helper function to validate admin session
+function isValidAdminSession(token) {
+    if (!token) return false;
+    const session = adminSessions.get(token);
+    if (!session) return false;
+    if (Date.now() > session.expires) {
+        adminSessions.delete(token);
+        return false;
+    }
+    return true;
+}
+
+// Admin login page
+app.get('/admin', (req, res) => {
+    // Check if already logged in via cookie
+    const token = req.headers.cookie?.match(/admin_token=([^;]+)/)?.[1];
+    if (isValidAdminSession(token)) {
+        return res.sendFile(path.join(__dirname, 'admin.html'));
+    }
+    res.sendFile(path.join(__dirname, 'admin-login.html'));
 });
+
+// Admin login API
+app.post('/api/admin/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        // Generate session token
+        const token = crypto.randomBytes(32).toString('hex');
+        adminSessions.set(token, {
+            expires: Date.now() + SESSION_DURATION
+        });
+
+        // Set cookie and return success
+        res.setHeader('Set-Cookie', `admin_token=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_DURATION / 1000}`);
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+});
+
+// Admin logout API
+app.post('/api/admin/logout', (req, res) => {
+    const token = req.headers.cookie?.match(/admin_token=([^;]+)/)?.[1];
+    if (token) {
+        adminSessions.delete(token);
+    }
+    res.setHeader('Set-Cookie', 'admin_token=; Path=/; HttpOnly; Max-Age=0');
+    res.json({ success: true });
+});
+
+// Admin session check middleware for API routes
+function requireAdmin(req, res, next) {
+    const token = req.headers.cookie?.match(/admin_token=([^;]+)/)?.[1];
+    if (isValidAdminSession(token)) {
+        next();
+    } else {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+}
 
 // Serve static files from root
 app.use(express.static(__dirname));
