@@ -122,3 +122,159 @@
     width: 18px;
     height: 18px;
 }
+
+/* ============================================
+   Zoom/Pan Overlay
+   ============================================ */
+
+.zoom-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease;
+}
+
+.zoom-overlay.hidden {
+    display: none;
+}
+
+.zoom-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+.zoom-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: white;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zoom-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.zoom-control-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.zoom-level {
+    min-width: 60px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+}
+
+.zoom-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-close-btn:hover {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.zoom-close-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.zoom-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: zoom-in;
+}
+
+.zoom-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.1s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.zoom-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.75rem 1.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .zoom-header {
+        padding: 0.75rem;
+    }
+
+    .zoom-title {
+        display: none;
+    }
+
+    .zoom-control-btn,
+    .zoom-close-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .zoom-control-btn svg,
+    .zoom-close-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .zoom-level {
+        min-width: 50px;
+        font-size: 0.75rem;
+    }
+}
