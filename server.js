@@ -275,6 +275,15 @@ function requireAdmin(req, res, next) {
     }
 }
 
+// Block direct access to admin HTML files (must go through /admin route)
+app.get('/admin.html', (req, res) => {
+    res.redirect('/admin');
+});
+
+app.get('/admin-login.html', (req, res) => {
+    res.redirect('/admin');
+});
+
 // Serve static files from root
 app.use(express.static(__dirname));
 
