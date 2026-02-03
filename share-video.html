@@ -50,7 +50,7 @@
                 </div>
             </div>
 
-            <div class="share-actions">
+            <div class="share-actions" id="shareActions">
                 <button class="share-btn" id="zoomBtn" title="Zoom & Pan">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8" />
@@ -67,6 +67,9 @@
                     <span>Record Video</span>
                 </a>
             </div>
+
+            <!-- Location Map Container (populated if location data exists in watermark) -->
+            <div id="locationMapPlaceholder"></div>
         </main>
     </div>
 
@@ -299,8 +302,80 @@
                 }
                 lastTap = now;
             });
+
+            // Extract watermark data from first video frame and show location map if available
+            function extractWatermarkFromVideo() {
+                const video = document.getElementById('shareVideo');
+
+                // Wait for video to be ready
+                if (video.readyState < 2) {
+                    video.addEventListener('loadeddata', extractWatermarkFromVideo, { once: true });
+                    return;
+                }
+
+                // Seek to first frame
+                const wasPlaying = !video.paused;
+                video.pause();
+                video.currentTime = 0;
+
+                video.addEventListener('seeked', function extractFrame() {
+                    video.removeEventListener('seeked', extractFrame);
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+
+                    try {
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        let watermarkData = null;
+
+                        // Try robust watermark first
+                        if (typeof RobustWatermark !== 'undefined') {
+                            const result = RobustWatermark.decode(imageData);
+                            if (result && result.message) {
+                                watermarkData = result.message;
+                                console.log('Robust watermark detected in video:', watermarkData);
+                            }
+                        }
+
+                        // Fallback to LSB steganography
+                        if (!watermarkData && typeof Steganography !== 'undefined') {
+                            watermarkData = Steganography.decode(imageData);
+                            if (watermarkData) {
+                                console.log('LSB watermark detected in video:', watermarkData);
+                            }
+                        }
+
+                        // Show location map if location data found
+                        if (watermarkData && typeof LocationMap !== 'undefined') {
+                            const shareActions = document.getElementById('shareActions');
+                            if (shareActions) {
+                                LocationMap.initFromWatermark(watermarkData, shareActions);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Could not extract watermark data from video:', error);
+                    }
+
+                    // Resume if was playing
+                    if (wasPlaying) {
+                        video.play();
+                    }
+                }, { once: true });
+            }
+
+            // Start watermark extraction after video loads
+            setTimeout(extractWatermarkFromVideo, 500);
         })();
     </script>
+
+    <!-- Watermark detection scripts -->
+    <script src="/robust-watermark.js"></script>
+    <script src="/steganography.js"></script>
+    <script src="/location-map.js"></script>
 </body>
 
 </html>

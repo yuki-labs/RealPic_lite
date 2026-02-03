@@ -45,12 +45,17 @@ const Watermark = (() => {
             lines.push({ text: dateTimeStr, fontSize: secondaryFontSize, fontWeight: 400 });
         }
 
-        // Line 3: Custom text (if provided)
+        // Line 3: Location address (if enabled and available)
+        if (config.showLocation && config.locationAddress) {
+            lines.push({ text: `📍 ${config.locationAddress}`, fontSize: secondaryFontSize, fontWeight: 400 });
+        }
+
+        // Line 4: Custom text (if provided)
         if (config.customText && config.customText.trim() !== '') {
             lines.push({ text: config.customText.trim(), fontSize: secondaryFontSize, fontWeight: 400 });
         }
 
-        // Line 4: User Agent
+        // Line 5: User Agent
         const userAgent = navigator.userAgent;
         lines.push({ text: userAgent, fontSize: secondaryFontSize, fontWeight: 400 });
 

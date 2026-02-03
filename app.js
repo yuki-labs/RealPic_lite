@@ -28,10 +28,14 @@ const App = (() => {
         opacity: 70,
         size: 24,
         showDateTime: true,
+        showLocation: false,
         customText: '',
         includeTimestamp: true,
         includeUserAgent: true
     };
+
+    // Cached location data for current capture
+    let captureLocation = null;
 
     // DOM Elements
     const elements = {};
@@ -73,6 +77,8 @@ const App = (() => {
         elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
         elements.saveSettingsBtn = document.getElementById('saveSettingsBtn');
         elements.showDateTime = document.getElementById('showDateTime');
+        elements.showLocation = document.getElementById('showLocation');
+        elements.locationHint = document.getElementById('locationHint');
         elements.customText = document.getElementById('customText');
         elements.toastContainer = document.getElementById('toastContainer');
         elements.cameraContainer = document.querySelector('.camera-container');
@@ -189,6 +195,9 @@ const App = (() => {
         if (elements.showDateTime) {
             elements.showDateTime.checked = settings.showDateTime;
         }
+        if (elements.showLocation) {
+            elements.showLocation.checked = settings.showLocation;
+        }
         if (elements.customText) {
             elements.customText.value = settings.customText || '';
         }
@@ -203,9 +212,22 @@ const App = (() => {
         elements.settingsModal.classList.add('hidden');
     }
 
-    function saveSettings() {
+    async function saveSettings() {
         settings.showDateTime = elements.showDateTime.checked;
+        settings.showLocation = elements.showLocation?.checked || false;
         settings.customText = elements.customText.value;
+
+        // If location was just enabled, request permission
+        if (settings.showLocation && typeof LocationUtils !== 'undefined') {
+            const granted = await LocationUtils.requestPermission();
+            if (!granted) {
+                showToast('Location permission denied', 'error');
+                settings.showLocation = false;
+                if (elements.showLocation) {
+                    elements.showLocation.checked = false;
+                }
+            }
+        }
 
         try {
             localStorage.setItem('realpic_settings', JSON.stringify(settings));
@@ -457,10 +479,23 @@ const App = (() => {
     }
 
     // Video Recording Functions
-    function startRecording() {
+    async function startRecording() {
         if (!currentStream) {
             showToast('Camera not ready', 'error');
             return;
+        }
+
+        // Capture location if enabled (do this first before recording)
+        captureLocation = null;
+        if (settings.showLocation && typeof LocationUtils !== 'undefined') {
+            try {
+                captureLocation = await LocationUtils.getLocationForWatermark();
+                if (captureLocation) {
+                    console.log('Location captured for video:', captureLocation.address);
+                }
+            } catch (e) {
+                console.warn('Could not get location for video:', e);
+            }
         }
 
         try {
@@ -472,6 +507,9 @@ const App = (() => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
+            // Store location in closure for the render function
+            const recordingLocation = captureLocation;
+
             // Start rendering video frames with watermark to canvas
             function renderFrame() {
                 if (!isRecording) return;
@@ -479,13 +517,15 @@ const App = (() => {
                 // Draw video frame
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Apply watermark
+                // Apply watermark with location
                 Watermark.applyVisible(ctx, canvas.width, canvas.height, {
                     text: settings.visibleText,
                     position: settings.position,
                     opacity: settings.opacity,
                     size: settings.size,
                     showDateTime: settings.showDateTime,
+                    showLocation: settings.showLocation,
+                    locationAddress: recordingLocation?.address || null,
                     customText: settings.customText
                 });
 
@@ -698,7 +738,7 @@ const App = (() => {
     }
 
     // Photo Capture Functions
-    function capturePhoto() {
+    async function capturePhoto() {
         const video = elements.cameraFeed;
         const canvas = elements.captureCanvas;
 
@@ -713,6 +753,19 @@ const App = (() => {
         setTimeout(() => {
             elements.cameraFeed.classList.remove('capture-flash');
         }, 200);
+
+        // Fetch location if enabled (don't block capture on this)
+        captureLocation = null;
+        if (settings.showLocation && typeof LocationUtils !== 'undefined') {
+            try {
+                captureLocation = await LocationUtils.getLocationForWatermark();
+                if (captureLocation) {
+                    console.log('Location captured:', captureLocation.address);
+                }
+            } catch (e) {
+                console.warn('Could not get location:', e);
+            }
+        }
 
         applyWatermarks();
     }
@@ -734,6 +787,8 @@ const App = (() => {
             opacity: settings.opacity,
             size: settings.size,
             showDateTime: settings.showDateTime,
+            showLocation: settings.showLocation,
+            locationAddress: captureLocation?.address || null,
             customText: settings.customText,
             cameraName: currentCameraLabel
         });
@@ -787,6 +842,14 @@ const App = (() => {
         // Always include camera name if available
         if (currentCameraLabel) {
             parts.push(`Camera: ${currentCameraLabel}`);
+        }
+
+        // Include location if enabled and available
+        if (settings.showLocation && captureLocation) {
+            parts.push(`Location: ${captureLocation.coords}`);
+            if (captureLocation.address) {
+                parts.push(`Address: ${captureLocation.address}`);
+            }
         }
 
         return parts.length > 0 ? parts.join(' | ') : null;

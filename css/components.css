@@ -131,6 +131,14 @@
     border-color: var(--color-accent);
 }
 
+/* Setting hint text */
+.setting-hint {
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--color-text-tertiary);
+    margin-top: var(--spacing-sm);
+    line-height: 1.4;
+}
+
 /* Toggle Switch */
 .toggle {
     position: relative;

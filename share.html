@@ -51,7 +51,7 @@
                 </div>
             </div>
 
-            <div class="share-actions">
+            <div class="share-actions" id="shareActions">
                 <button class="share-btn" id="zoomBtn" title="Zoom & Pan">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8" />
@@ -68,6 +68,9 @@
                     <span>Take Photo</span>
                 </a>
             </div>
+
+            <!-- Location Map Container (populated if location data exists in watermark) -->
+            <div id="locationMapPlaceholder"></div>
         </main>
     </div>
 
@@ -294,8 +297,65 @@
                 }
                 lastTap = now;
             });
+
+            // Extract watermark data and show location map if available
+            function extractWatermarkAndShowMap() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = document.getElementById('shareImage');
+
+                // Wait for image to load
+                if (!img.complete || img.naturalWidth === 0) {
+                    img.addEventListener('load', extractWatermarkAndShowMap, { once: true });
+                    return;
+                }
+
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                ctx.drawImage(img, 0, 0);
+
+                try {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let watermarkData = null;
+
+                    // Try robust watermark first
+                    if (typeof RobustWatermark !== 'undefined') {
+                        const result = RobustWatermark.decode(imageData);
+                        if (result && result.message) {
+                            watermarkData = result.message;
+                            console.log('Robust watermark detected:', watermarkData);
+                        }
+                    }
+
+                    // Fallback to LSB steganography
+                    if (!watermarkData && typeof Steganography !== 'undefined') {
+                        watermarkData = Steganography.decode(imageData);
+                        if (watermarkData) {
+                            console.log('LSB watermark detected:', watermarkData);
+                        }
+                    }
+
+                    // Show location map if location data found
+                    if (watermarkData && typeof LocationMap !== 'undefined') {
+                        const shareActions = document.getElementById('shareActions');
+                        if (shareActions) {
+                            LocationMap.initFromWatermark(watermarkData, shareActions);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not extract watermark data:', error);
+                }
+            }
+
+            // Start watermark extraction after a short delay
+            setTimeout(extractWatermarkAndShowMap, 500);
         })();
     </script>
+
+    <!-- Watermark detection scripts -->
+    <script src="/robust-watermark.js"></script>
+    <script src="/steganography.js"></script>
+    <script src="/location-map.js"></script>
 </body>
 
 </html>
